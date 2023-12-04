@@ -1,0 +1,16 @@
+# kubeadm join config - Single control plane, multiple worker nodes K8s cluster
+# apiServerEndpoint should have same config than in init config for controlPlaneEndpoint
+# Bootstrap token should match with one in init config
+# name must be to unique for every worker and node-ip must match with 'lima0' interface
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: 192.168.105.101:6443
+    token: 9a08jv.c0izixklcxtmnze7
+    unsafeSkipCAVerification: true
+nodeRegistration:
+  name: "worker-3"
+  criSocket: "unix:///var/run/containerd/containerd.sock"
+  kubeletExtraArgs:
+    node-ip: 192.168.105.106
