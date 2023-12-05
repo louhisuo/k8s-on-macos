@@ -120,7 +120,7 @@ Following steps are to be run inside of `cp-1` machine
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.6.3
+export KVVERSION=v0.6.4
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -206,7 +206,7 @@ Following steps are to be run inside of `cp-2`  machine`
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.6.3
+export KVVERSION=v0.6.4
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -234,7 +234,7 @@ Following steps are to be run inside of `cp-3` node machine`
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.6.3
+export KVVERSION=v0.6.4
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
