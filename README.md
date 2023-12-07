@@ -61,16 +61,16 @@ limactl sudoers >etc_sudoers.d_lima && sudo install -o root etc_sudoers.d_lima "
 
 Create machines (Virtual Machines (VM) for nodes) for single Control Plane (CP) cluster configuration. 
 ```
-limactl create --set='.networks[].macAddress="52:55:55:12:34:01"' --name cp-1 machines/ubuntu-machine-tmpl.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:04"' --name worker-1 machines/ubuntu-machine-tmpl.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-machine-tmpl.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-machine-tmpl.yaml --tty=false
+limactl create --set='.networks[].macAddress="52:55:55:12:34:01"' --name cp-1 machines/ubuntu-lts-machine.yaml --tty=false
+limactl create --set='.networks[].macAddress="52:55:55:12:34:04"' --name worker-1 machines/ubuntu-lts-machine.yaml --tty=false
+limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-lts-machine.yaml --tty=false
+limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --tty=false
 ```
 
 Create machines for other Control Plane (CP) nodes to implement HA cluster configuration.
 ```
-limactl create --set='.networks[].macAddress="52:55:55:12:34:02"' --name cp-2 machines/ubuntu-machine-tmpl.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:03"' --name cp-3 machines/ubuntu-machine-tmpl.yaml --tty=false
+limactl create --set='.networks[].macAddress="52:55:55:12:34:02"' --name cp-2 machines/ubuntu-lts-machine.yaml --tty=false
+limactl create --set='.networks[].macAddress="52:55:55:12:34:03"' --name cp-3 machines/ubuntu-lts-machine.yaml --tty=false
 ```
 
 Please note that machine template file provisions components of the latest Kubernetes release.
@@ -151,7 +151,8 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 
 Install CNI (Cilium) with L2 load balancer, Ingress Controller and Gateway API support enabled.
 ```
-cilium install --version 1.14.4 \
+export CILIUM_VERSION=1.14.4
+cilium install --version $CILIUM_VERSION \
     --set operator.replicas=1 \
     --set ipam.operator.clusterPoolIPv4PodCIDRList="10.244.0.0/16" \
     --set kubeProxyReplacement=true \
@@ -167,19 +168,10 @@ Note: `cilium status` will show TLS error until `kubelet serving` certificates a
 #### Setup `kubeconfig` on macOS host
 Following steps are to be run on `macOS` host
 
-Export `kubeconfig` from a CP node to host.
+Export and set `kubeconfig` on `macOS` host
 ```
 limactl cp cp-1:.kube/config ~/.kube/config.k8s-on-macos
-```
-
-Set context to freshly created Kubernetes cluster
-```
 export KUBECONFIG=~/.kube/config.k8s-on-macos 
-```
-
-Test that you are able to access the cluster from macOS host
-```
-kubectl version
 ```
 
 #### Join worker nodes to Kubernetes cluster
@@ -266,18 +258,33 @@ kubectl get csr
 kubectl get csr | grep "Pending" | awk '{print $1}' | xargs kubectl certificate approve
 ```
 
+### Configure Cilium CNI
+
+Apply address pool configuration for L2 loadbalancer
+```
+kubectl apply -f manifests/cilium/l2-aware-lb-cfg.yaml
+```
+
+
 ### Install add-ons
+
 #### Metrics server
 Install metrics server
 ```
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
 
-### Finalize initial configuration
-Apply address pool configuration for L2 loadbalancer
+#### Local path provisioner
+Install metrics server
 ```
-kubectl apply -f manifests/cilium/l2-aware-lb-cfg.yaml
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.26/deploy/local-path-storage.yaml
 ```
+
+Apply local path provisioner configuration. There will be a delay after `configmap` is applied before the provisioner picks it up.
+```
+kubectl apply -f manifests/local-path-provisioner/provisioner-cm.yaml
+```
+
 
 ### Finals checks
 
