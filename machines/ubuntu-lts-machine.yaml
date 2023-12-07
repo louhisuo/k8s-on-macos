@@ -22,8 +22,12 @@ networks:
 - lima: shared
   macAddress: "12:34:56:78:9A:BC"
 
-# No mounts exposed
-mounts: []
+# Host mount for local-path-provisioner
+mountType: 9p
+mounts:
+- location: "~/.lima/_disks"
+  mountPoint: "/opt/local-path-provisioner"
+  writable: true
 
 # Enable system-wide (aka rootful)  containerd and its dependencies (BuildKit, Stargz Snapshotter)
 containerd:
@@ -98,3 +102,4 @@ provision:
     sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
     tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
     rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+
