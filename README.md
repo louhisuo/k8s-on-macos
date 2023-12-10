@@ -42,10 +42,30 @@ Reload macOS DHCP daeamon.
 sudo /bin/launchctl kickstart -kp system/com.apple.bootpd
 ```
 #### Kubernetes API server
-Kubernetes API server is available via VIP address `192.168.105.100`
+Kubernetes API server is available via VIP address `192.168.105.100`.
 
-#### Kubernetes L4 load balancer IP address pool
-To access services from host address pool for L4 load balancer needs to be configured to same shared subnet than node IPs. Therefore we will use `192.168.105.240/28` as L4 load balancer address pool giving us 14 usable addresses. IP address `192.168.105.241` will be assigned for Ingress Controller.
+#### L2 Aware load balancer, Ingress and Gateway
+IP address pool for `Load Balancer` services must be configured to same shared subnet than cluster `node IPs`. Currently L2 Aware LB in Cilium CNI is used and default address pool is configured is `192.168.105.240/28`.
+
+From the assigned address pool following IPs are "reserved", leaving 12 addresses available for different LB services.
+- `192.168.105.241` is assigned to `Ingress` (Cilium Ingress Controller) and
+- `192.168.105.242` is reserved for `Gateway` (Cilium Gateway API). `Gateway` configuration is work in progress.
+
+#### Proxying API server to `macOS` host
+Inside a `Control Plane` node, start HTTP proxy for Kubernetes API.
+```
+kubectl --kubeconfig $HOME/.kube/config proxy
+```
+
+Access Kubernetes API from `macOS` host using `curl`, `wget` or any `web browser` using following URL.
+```
+http://localhost:8001/api/v1
+```
+
+#### Exposing services via `NodePort` to `macOS` host
+It is possible to expose Kubernetes services via `NodePort` to `macOS` host. Full `NodePort` range `30000-32767` is exposed to `macoS` host from provisioned `Lima VM` machines during machine creation phaase.
+
+Actual services with `type: NodePort` will be available on `macOS` host via `node IP` address of any Control Plane or Worker nodes of a cluster (not via VIP address) and assigned `NodePort` value for a service.
 
 #### Troubleshooting `socket_vmnet` related issues
 Update sudoers config and _config/networks.yaml file.
@@ -275,7 +295,7 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 ```
 
 #### Local path provisioner
-Install metrics server
+Install local path provisioner
 ```
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.26/deploy/local-path-storage.yaml
 ```
