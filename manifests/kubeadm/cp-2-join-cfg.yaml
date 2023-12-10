@@ -1,14 +1,18 @@
-# kubeadm join config - Multiple control plane and multiple worker nodes K8s cluster
-# apiServerEndpoint should have same config than in init config for controlPlaneEndpoint
-# Bootstrap token should match with one in init config
-# name must be to unique for every worker and node-ip must match with 'lima0' interface
+#
+# kubeadm join config for High Available (HA) Control Plane and multiple Worker nodes cluster.
+#
+# 'apiServerEndpoint' should have same config value than in init config for 'controlPlaneEndpoint'
+# 'name' must be to unique for every node, 'advertiseAddress' and 'node-ip' must match with 'lima0' interface
+# For cluster initial bootstrap convinience 'token' and 'certificateKey' are preconfigured in kubeadm init/join config files and 'unsafeSkipCAVerification' is set.
+# This is INSECURE approach but as a bootstrapped cluster is assumed to be shortlived sandbox and running in closed environment this approach was considered acceptable tradeoff.
+#
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: JoinConfiguration
 controlPlane:
   localAPIEndpoint:
     advertiseAddress: 192.168.105.102
     bindPort: 6443
-  certificateKey: "e6a2eb85817ab72a4f494f30285ec9785706a83bfcbd2204"
+  certificateKey: "c411505d8504115b928286cc37a83c230d80c4db06bdf19d8f64828e3724d363"
 discovery:
   bootstrapToken:
     apiServerEndpoint: 192.168.105.100:6443
@@ -19,3 +23,4 @@ nodeRegistration:
   criSocket: "unix:///var/run/containerd/containerd.sock"
   kubeletExtraArgs:
     node-ip: 192.168.105.102
+  ignorePreflightErrors:
