@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-system
+  namespace: kube-system
+spec:
+  ingressClassName: cilium
+  rules:
+  - host: "hubble-ui.k8s.jalonet.io"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hubble-ui
+            port:
+              number: 80
