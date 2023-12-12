@@ -87,7 +87,7 @@ limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-
 limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --tty=false
 ```
 
-Create machines for other Control Plane (CP) nodes to implement HA cluster configuration.
+Create machines for other Control Plane (CP) nodes to implement HA cluster configuration. Skip this step for single Control Plane Kubernetes cluster configuration.
 ```
 limactl create --set='.networks[].macAddress="52:55:55:12:34:02"' --name cp-2 machines/ubuntu-lts-machine.yaml --tty=false
 limactl create --set='.networks[].macAddress="52:55:55:12:34:03"' --name cp-3 machines/ubuntu-lts-machine.yaml --tty=false
@@ -103,7 +103,7 @@ limactl start worker-2
 limactl start worker-3
 ```
 
-Start machines for other Control Plane (CP) nodes to implement HA cluster configuration.
+Start machines for other Control Plane (CP) nodes to implement HA cluster configuration. Skip this step for single Control Plane Kubernetes cluster configuration.
 ```
 limactl start cp-2
 limactl start cp-3
@@ -126,7 +126,7 @@ limactl cp manifests/kubeadm/worker-2-join-cfg.yaml worker-2:
 limactl cp manifests/kubeadm/worker-3-join-cfg.yaml worker-3:
 ```
 
-Copy `kubeadm` config files into the other Control Plane (CP) node machines to implement HA cluster configuration.
+Copy `kubeadm` config files into the other Control Plane (CP) node machines to implement HA cluster configuration. Skip this step for single Control Plane Kubernetes cluster configuration.
 ```
 limactl cp manifests/kubeadm/cp-2-join-cfg.yaml cp-2:
 limactl cp manifests/kubeadm/cp-3-join-cfg.yaml cp-3:
@@ -134,7 +134,6 @@ limactl cp manifests/kubeadm/cp-3-join-cfg.yaml cp-3:
 
 
 ### Setup single Control Plane (CP) Kubernetes cluster with three worker nodes
-
 #### Initiate Kubernetes Control Plane (CP) in CP-1 machine
 Following steps are to be run inside of `cp-1` machine
 
@@ -157,38 +156,15 @@ Initiate Kubernetes Control Plane (CP)
 sudo kubeadm init --upload-certs --config cp-1-init-cfg.yaml
 ```
 
-Copy `kubeconfig` for use by a regular user
+#### Setup `kubeconfig` for a regular user
+Inside of `cp-1` machine copy `kubeconfig` for a regular user
 ```
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-Install Gateway API bundle with experimental resources support. For details, see [Gatewway API project](https://gateway-api.sigs.k8s.io/guides/)
-```
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/experimental-install.yaml
-```
-
-Install CNI (Cilium) with L2 load balancer, Ingress Controller and Gateway API support enabled.
-```
-export CILIUM_VERSION=1.14.4
-cilium install --version $CILIUM_VERSION \
-    --set operator.replicas=1 \
-    --set ipam.operator.clusterPoolIPv4PodCIDRList="10.244.0.0/16" \
-    --set kubeProxyReplacement=true \
-    --set l2announcements.enabled=true \
-    --set ingressController.enabled=true \
-    --set ingressController.default=true \
-    --set ingressController.loadbalancerMode=shared \
-    --set ingressController.service.loadBalancerIP="192.168.105.241" \
-    --set gatewayAPI.enabled=true
-```
-Note: `cilium status` will show TLS error until `kubelet serving` certificates are approved.
-
-#### Setup `kubeconfig` on macOS host
-Following steps are to be run on `macOS` host
-
-Export and set `kubeconfig` on `macOS` host
+On `macOS` host export and set `kubeconfig` for a regular user
 ```
 limactl cp cp-1:.kube/config ~/.kube/config.k8s-on-macos
 export KUBECONFIG=~/.kube/config.k8s-on-macos 
@@ -214,7 +190,7 @@ sudo kubeadm join --config worker-3-join-cfg.yaml
 
 
 ### Join other Control Plane (CP) nodes to implement High Available (HA) Kubernetes cluster
-Following steps are to be run inside of `cp-2`  machine`
+Following steps are to be run inside of `cp-2`  machine`. Skip these steps for single Control Plane Kubernetes cluster configuration.
 
 Generate `kube-vip` static pod manifest
 ```
@@ -278,23 +254,37 @@ kubectl get csr
 kubectl get csr | grep "Pending" | awk '{print $1}' | xargs kubectl certificate approve
 ```
 
-### Configure Cilium CNI
 
-Apply address pool configuration for L2 loadbalancer
+### Setup and configure Cilium CNI
+Note: Cilium 1.14.x supports Gateway API 0.7.0. Support for Gateway API 1.0 is expected in Cilium 1.15.x releases.
+
+Install Gateway API bundle with experimental resources support. For details, see [Gatewway API project](https://gateway-api.sigs.k8s.io/guides/).
+```
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/experimental-install.yaml
+```
+
+Install CNI (Cilium) with L2 load balancer, Ingress Controller, Gateway API and Hubble UI support enabled.
+```
+export CILIUM_VERSION=1.14.4
+helm install cilium cilium/cilium --version $CILIUM_VERSION \
+    --namespace kube-system \
+    --values manifests/cilium/values.yaml
+```
+
+Configure L2 announcements and address pool for L2 aware Load Balancer
 ```
 kubectl apply -f manifests/cilium/l2-aware-lb-cfg.yaml
 ```
 
 
-### Install add-ons
-
-#### Metrics server
+## Install add-ons
+### Metrics server
 Install metrics server
 ```
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
 
-#### Local path provisioner
+### Local path provisioner
 Install local path provisioner
 ```
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.26/deploy/local-path-storage.yaml
@@ -306,8 +296,7 @@ kubectl apply -f manifests/local-path-provisioner/provisioner-cm.yaml
 ```
 
 
-### Finals checks
-
+## Finals checks
 Check from `macOS` host that cluster works as expected
 ```
 kubectl version
