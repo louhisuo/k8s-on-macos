@@ -51,10 +51,18 @@ provision:
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
     overlay
     br_netfilter
+    ip_vs
+    ip_vs_rr
+    ip_vs_wrr
+    ip_vs_sh
     EOF
     
     modprobe overlay
     modprobe br_netfilter
+    modprobe ip_vs
+    modprobe ip_vs_rr
+    modprobe ip_vs_wrr
+    modprobe ip_vs_sh
     
     cat <<EOF | tee /etc/sysctl.d/k8s.conf
     net.bridge.bridge-nf-call-iptables  = 1
