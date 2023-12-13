@@ -51,23 +51,29 @@ From the assigned address pool following IPs are "reserved", leaving 12 addresse
 - `192.168.105.241` is assigned to `Ingress` (Cilium Ingress Controller) and
 - `192.168.105.242` is reserved for `Gateway` (Cilium Gateway API). `Gateway` configuration is work in progress.
 
-#### Proxying API server to `macOS` host
+#### Proxying API server to macOS host
 Inside a `Control Plane` node, start HTTP proxy for Kubernetes API.
 ```
 kubectl --kubeconfig $HOME/.kube/config proxy
 ```
+
+Or on `macOS` host, start HTTP proxy for Kubernetes API.
+```
+kubectl --kubeconfig ~/.kube/config.k8s-on-macos proxy
+```
+
 
 Access Kubernetes API from `macOS` host using `curl`, `wget` or any `web browser` using following URL.
 ```
 http://localhost:8001/api/v1
 ```
 
-#### Exposing services via `NodePort` to `macOS` host
+#### Exposing services via NodePort to macOS host
 It is possible to expose Kubernetes services via `NodePort` to `macOS` host. Full `NodePort` range `30000-32767` is exposed to `macoS` host from provisioned `Lima VM` machines during machine creation phaase.
 
 Actual services with `type: NodePort` will be available on `macOS` host via `node IP` address of any Control Plane or Worker nodes of a cluster (not via VIP address) and assigned `NodePort` value for a service.
 
-#### Troubleshooting `socket_vmnet` related issues
+#### Troubleshooting socket_vmnet related issues
 Update sudoers config and _config/networks.yaml file.
 Currently it is neccessary to replace `socketVMNet` field in `~/.lima/_config/networks.yaml` with absolute path, instead of symbolic link and generate sudoers configuration to able to execute `limactl start`.
 
@@ -148,6 +154,7 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --controlplane \
     --address $VIP \
     --interface $INTERFACE \
+    --enableLoadBalancer \
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
@@ -156,7 +163,7 @@ Initiate Kubernetes Control Plane (CP)
 sudo kubeadm init --upload-certs --config cp-1-init-cfg.yaml
 ```
 
-#### Setup `kubeconfig` for a regular user
+#### Setup kubeconfig for a regular user
 Inside of `cp-1` machine copy `kubeconfig` for a regular user
 ```
 mkdir -p $HOME/.kube
@@ -167,7 +174,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 On `macOS` host export and set `kubeconfig` for a regular user
 ```
 limactl cp cp-1:.kube/config ~/.kube/config.k8s-on-macos
-export KUBECONFIG=~/.kube/config.k8s-on-macos 
+export KUBECONFIG=~/.kube/config.k8s-on-macos
 ```
 
 #### Join worker nodes to Kubernetes cluster
@@ -203,6 +210,7 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --controlplane \
     --address $VIP \
     --interface $INTERFACE \
+    --enableLoadBalancer \
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
@@ -231,6 +239,7 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --controlplane \
     --address $VIP \
     --interface $INTERFACE \
+    --enableLoadBalancer \
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
@@ -247,7 +256,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 
-### Manual approval of `kubelet serving` certificates
+### Manual approval of kubelet serving certificates
 Approve any pending `kubelet-serving` certificate
 ```
 kubectl get csr
@@ -297,7 +306,7 @@ kubectl apply -f manifests/local-path-provisioner/provisioner-cm.yaml
 
 
 ## Finals checks
-Check from `macOS` host that cluster works as expected
+Check from that cluster works as expected
 ```
 kubectl version
 cilium status
