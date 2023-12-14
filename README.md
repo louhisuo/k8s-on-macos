@@ -1,4 +1,5 @@
 # Kubernetes on macOS (Apple silicon)
+NOTE: Kubernetes version now defaults to version 1.29 !!
 
 ## Goals
 Setup a fully functional multi-node Kubernetes cluster on macOS (Apple silicon) with both Host-VM and VM-VM communication.
@@ -158,6 +159,11 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
+Patch `kube-vip.yaml` (Note: This step is only applicable with Kubernetes 1.29)
+```
+sudo sed -i 's/path: \/etc\/kubernetes\/admin.conf/path: \/etc\/kubernetes\/super-admin.conf/' /etc/kubernetes/manifests/kube-vip.yaml
+```
+
 Initiate Kubernetes Control Plane (CP)
 ```
 sudo kubeadm init --upload-certs --config cp-1-init-cfg.yaml
@@ -214,6 +220,11 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
+Patch `kube-vip.yaml` (Note: This step is only applicable with Kubernetes 1.29)
+```
+sudo sed -i 's/path: \/etc\/kubernetes\/admin.conf/path: \/etc\/kubernetes\/super-admin.conf/' /etc/kubernetes/manifests/kube-vip.yaml
+```
+
 Join additional Control Plane (CP) node
 ```
 sudo kubeadm join --config cp-2-join-cfg.yaml
@@ -241,6 +252,11 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --interface $INTERFACE \
     --enableLoadBalancer \
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
+```
+
+Patch `kube-vip.yaml` (Note: This step is only applicable with Kubernetes 1.29)
+```
+sudo sed -i 's/path: \/etc\/kubernetes\/admin.conf/path: \/etc\/kubernetes\/super-admin.conf/' /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
 Join additional Control Plane (CP)
@@ -274,7 +290,7 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 
 Install CNI (Cilium) with L2 load balancer, Ingress Controller, Gateway API and Hubble UI support enabled.
 ```
-export CILIUM_VERSION=1.14.4
+export CILIUM_VERSION=1.14.5
 helm install cilium cilium/cilium --version $CILIUM_VERSION \
     --namespace kube-system \
     --values manifests/cilium/values.yaml
