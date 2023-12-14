@@ -31,9 +31,33 @@ ingressController:
 gatewayAPI:
   enabled: true
 
+# Enable Operator (required)
+operator:
+  enabled: true
+  replicas: 1
+  tolerations:
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+
 # Enable Hubble UI
 hubble:
   relay:
     enabled: true
+    tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+    nodeSelector:
+      node-role.kubernetes.io/control-plane: ""
   ui:
     enabled: true
+    tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        effect: "NoSchedule"
+    nodeSelector:
+      node-role.kubernetes.io/control-plane: ""
+
