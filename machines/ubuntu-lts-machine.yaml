@@ -2,7 +2,7 @@
 # Kubernetes node (machine) template based on Ubuntu Cloud Image
 #
 
-# VM type: "qemu" or "vz" (on macOS 13 and later).
+# VM type: "qemu" or "vz" (on macOS 13 and later)
 vmType: qemu
 
 # OpenStack-compatible (cloud-init) disk image.
@@ -41,6 +41,22 @@ containerd:
   user: false
 
 provision:
+# Add nodes to '/etc/hosts'
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    cat <<EOF | tee -a /etc/hosts
+    192.168.105.100 sandbox sandbox.k8s.jalonet.io
+    192.168.105.101 cp-1
+    192.168.105.102 cp-2
+    192.168.105.103 cp-3
+    192.168.105.104 worker-1
+    192.168.105.105 worker-2
+    192.168.105.106 worker-3
+    EOF
+
 
 # https://kubernetes.io/docs/setup/production-environment/container-runtimes/#forwarding-ipv4-and-letting-iptables-see-bridged-traffic
 - mode: system
@@ -48,7 +64,7 @@ provision:
     #!/bin/bash
     set -eux -o pipefail
 
-    cat <<EOF | tee /etc/modules-load.d/k8s.conf
+    cat <<EOF | tee -a /etc/modules-load.d/k8s.conf
     overlay
     br_netfilter
     ip_vs
@@ -64,34 +80,13 @@ provision:
     modprobe ip_vs_wrr
     modprobe ip_vs_sh
     
-    cat <<EOF | tee /etc/sysctl.d/k8s.conf
+    cat <<EOF | tee -a /etc/sysctl.d/k8s.conf
     net.bridge.bridge-nf-call-iptables  = 1
     net.bridge.bridge-nf-call-ip6tables = 1
     net.ipv4.ip_forward                 = 1
     EOF
     
     sysctl --system
-
-# Update installed packages and install packages needed by K8s
-# Install kubeadm, kubectl and kubelet
-- mode: system
-  script: |
-    #!/bin/bash
-    set -eux -o pipefail
-
-    K8S_REPO=v1.29
-    K8S_VERSION=1.29.0
-
-    apt-get update
-    apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq
-
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/${K8S_REPO}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/'${K8S_REPO}'/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-
-    apt-get update
-    apt-get install -y kubelet=${K8S_VERSION}* kubeadm=${K8S_VERSION}* kubectl=${K8S_VERSION}*
-    apt-mark hold kubelet kubeadm kubectl
-    systemctl enable --now kubelet
 
 # Create / Override containerd config and set cgroup driver for runc to systemd
 # https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd
@@ -102,9 +97,31 @@ provision:
 
     mkdir -p /etc/containerd
     containerd config default > /etc/containerd/config.toml
-    sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
-    sed -i 's/sandbox_image = "registry.k8s.io\/pause:3.8"/sandbox_image = "registry.k8s.io\/pause:3.9"/' /etc/containerd/config.toml
+    sed -i 's#SystemdCgroup = false#SystemdCgroup = true#' /etc/containerd/config.toml
+    sed -i 's#sandbox_image = "registry.k8s.io/pause:3.8"#sandbox_image = "registry.k8s.io/pause:3.9"#' /etc/containerd/config.toml
+
     systemctl restart containerd
+
+# Update installed packages and install packages needed by K8s
+# Install kubeadm, kubectl and kubelet
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    K8S_REPO=v1.28
+    K8S_VERSION=1.28.6
+
+    apt-get update
+    apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq
+
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/${K8S_REPO}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/'${K8S_REPO}'/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+    apt-get update
+    apt-get install -y kubeadm=${K8S_VERSION}-* kubectl=${K8S_VERSION}-* kubelet=${K8S_VERSION}-*
+    apt-mark hold kubeadm kubectl kubelet
+    systemctl enable --now kubelet
 
 # Install Cilium CLI
 # https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/
