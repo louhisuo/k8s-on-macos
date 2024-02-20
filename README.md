@@ -1,5 +1,6 @@
 # Kubernetes on macOS (Apple silicon)
-NOTE: Kubernetes version now defaults to version 1.29 !!
+Kubernetes release now defaults to 1.28.6 release !!
+Note that `kube-vip` is incompatible with Kubernetes 1.29 (see issues in Github). It is possible to get this setup working with Kubernetes 1.29 by using kube-vip 0.6.3 with some workarounds. However setup is not very stable.
 
 ## Goals
 Setup a fully functional multi-node Kubernetes cluster on macOS (Apple silicon) with both Host-VM and VM-VM communication.
@@ -15,6 +16,16 @@ Homebrew will be used to install all tools needed on macOS host.
 - [ ] [cilium-cli](https://github.com/cilium/cilium-cli/)
 - [ ] [kubectl](https://github.com/kubernetes/kubectl)
 - [ ] [helm](https://helm.sh/)
+
+### Current default versions
+- Lima VM 0.20.1 / socket_vmnet 1.1.4 - Virtualization
+- Ubuntu 22.04 LTS - Node images
+- Kubernetes 1.28.6 - Kubernetes release
+- Cilium 1.15.1 - CNI, L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API)
+- Gateway API 1.0 - CRDs supported by Cilium 1.15.1
+- kube-vip 0.6.3. - Kubernetes Control Plane LB
+- metrics-server 0.7.0
+- local-path-provisioner 0.0.26
 
 ### Assumptions
 Git repo has been cloned to local macOS hosts. All commands are to be executed from repo root on host, unless stated otherwise.
@@ -146,7 +157,7 @@ Following steps are to be run inside of `cp-1` machine
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.6.4
+export KVVERSION=v0.6.3
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -159,14 +170,21 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
-Patch `kube-vip.yaml` (Note: This step is only applicable with Kubernetes 1.29)
+Workaround for Kubernetes 1.29, until until bootstrap issue with `kube-vip` is fixed (Note: This step is only applicable with Kubernetes 1.29)
+Patch `kube-vip.yaml` to use super-admin.conf during `kubeadm init`
 ```
-sudo sed -i 's/path: \/etc\/kubernetes\/admin.conf/path: \/etc\/kubernetes\/super-admin.conf/' /etc/kubernetes/manifests/kube-vip.yaml
+sudo sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
 Initiate Kubernetes Control Plane (CP)
 ```
 sudo kubeadm init --upload-certs --config cp-1-init-cfg.yaml
+```
+
+Workaround for Kubernetes 1.29, until until bootstrap issue with `kube-vip` is fixed (Note: This step is only applicable with Kubernetes 1.29)
+Patch `kube-vip.yaml` to use admin.conf after `kubeadm init` has been successfully executed
+```
+sudo sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
 #### Setup kubeconfig for a regular user
@@ -207,7 +225,7 @@ Following steps are to be run inside of `cp-2`  machine`. Skip these steps for s
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.6.4
+export KVVERSION=v0.6.3
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -218,11 +236,6 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --interface $INTERFACE \
     --enableLoadBalancer \
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
-```
-
-Patch `kube-vip.yaml` (Note: This step is only applicable with Kubernetes 1.29)
-```
-sudo sed -i 's/path: \/etc\/kubernetes\/admin.conf/path: \/etc\/kubernetes\/super-admin.conf/' /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
 Join additional Control Plane (CP) node
@@ -241,7 +254,7 @@ Following steps are to be run inside of `cp-3` node machine`
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.6.4
+export KVVERSION=v0.6.3
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -252,11 +265,6 @@ sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip 
     --interface $INTERFACE \
     --enableLoadBalancer \
     --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
-```
-
-Patch `kube-vip.yaml` (Note: This step is only applicable with Kubernetes 1.29)
-```
-sudo sed -i 's/path: \/etc\/kubernetes\/admin.conf/path: \/etc\/kubernetes\/super-admin.conf/' /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
 Join additional Control Plane (CP)
@@ -271,7 +279,6 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-
 ### Manual approval of kubelet serving certificates
 Approve any pending `kubelet-serving` certificate
 ```
@@ -279,28 +286,33 @@ kubectl get csr
 kubectl get csr | grep "Pending" | awk '{print $1}' | xargs kubectl certificate approve
 ```
 
-
-### Setup and configure Cilium CNI
-Note: Cilium 1.14.x supports Gateway API 0.7.0. Support for Gateway API 1.0 is expected in Cilium 1.15.x releases.
-
-Install Gateway API bundle with experimental resources support. For details, see [Gatewway API project](https://gateway-api.sigs.k8s.io/guides/).
+### Install Gateway API
+Install Gateway API CRDs supported by Cilium.
 ```
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/experimental-install.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gateways.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_grpcroutes.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
 ```
 
-Install CNI (Cilium) with L2 load balancer, Ingress Controller, Gateway API and Hubble UI support enabled.
+### Install and configure Cilium CNI
+Install CNI (Cilium) with L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API) support enabled.
 ```
-export CILIUM_VERSION=1.14.5
-helm install cilium cilium/cilium --version $CILIUM_VERSION \
-    --namespace kube-system \
-    --values manifests/cilium/values.yaml
+export CILIUM_VERSION=1.15.1
+helm install cilium cilium/cilium --version $CILIUM_VERSION --namespace kube-system --values manifests/cilium/values.yaml
 ```
 
 Configure L2 announcements and address pool for L2 aware Load Balancer
 ```
-kubectl apply -f manifests/cilium/l2-aware-lb-cfg.yaml
+kubectl apply -f manifests/cilium/l2-lb-cfg.yaml
 ```
 
+Configure Gateway (default)
+```
+kubectl apply -f manifests/cilium/gtw-cfg.yaml
+```
 
 ## Install add-ons
 ### Metrics server
@@ -326,9 +338,6 @@ Check from that cluster works as expected
 ```
 kubectl version
 cilium status
-kubectl get nodes -o wide
-kubectl get all -A -o wide
-kubectl top nodes
-kubectl top pods -A --sort-by=memory
+kubectl get --raw='/readyz?verbose'
 ```
 --- END ---
