@@ -27,6 +27,7 @@ skipPhases:
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 clusterName: "sandbox"
+kubernetesVersion: 1.28.6
 controlPlaneEndpoint: 192.168.105.100:6443
 apiServer:
   certSANs:
@@ -35,7 +36,7 @@ apiServer:
   - "192.168.105.101"
   - "192.168.105.102"
   - "192.168.105.103"
-  - "sandbox.k8s.example.com"
+  - "sandbox"
   extraArgs:
     event-ttl: 12h0m0s
 networking:
@@ -46,6 +47,7 @@ featureGates:
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
+# 'kubectl get csr' / 'kubectl certificate approve' are used to approve kubernetes.io/kubelet-serving CSRs
 rotateCertificates: true
 serverTLSBootstrap: true
 featureGates:
