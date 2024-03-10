@@ -17,12 +17,12 @@ spec:
       value: lima0
     - name: vip_cidr
       value: "32"
+    - name: dns_mode
+      value: first
     - name: cp_enable
       value: "true"
     - name: cp_namespace
       value: kube-system
-    - name: vip_ddns
-      value: "false"
     - name: vip_leaderelection
       value: "true"
     - name: vip_leasename
@@ -33,11 +33,17 @@ spec:
       value: "3"
     - name: vip_retryperiod
       value: "1"
+    - name: lb_enable
+      value: "true"
+    - name: lb_port
+      value: "6443"
+    - name: lb_fwdmethod
+      value: local
     - name: address
       value: 192.168.105.100
     - name: prometheus_server
       value: :2112
-    image: ghcr.io/kube-vip/kube-vip:v0.6.3
+    image: ghcr.io/kube-vip/kube-vip:v0.7.1
     imagePullPolicy: Always
     name: kube-vip
     resources: {}
