@@ -6,56 +6,33 @@ metadata:
 data:
   config.json: |-
         {
-                "nodePathMap":[
-                {
-                        "node":"DEFAULT_PATH_FOR_NON_LISTED_NODES",
-                        "paths":["/opt/local-path-provisioner"]
-                },
-                {
-                        "node":"cp-1",
-                        "paths":["/opt/local-path-provisioner/cp-1-data"]
-                },
-                {
-                        "node":"cp-2",
-                        "paths":["/opt/local-path-provisioner/cp-2-data"]
-                },
-                {
-                        "node":"cp-3",
-                        "paths":["/opt/local-path-provisioner/cp-3-data"]
-                },
-                {
-                        "node":"worker-1",
-                        "paths":["/opt/local-path-provisioner/worker-1-data"]
-                },
-                {
-                        "node":"worker-2",
-                        "paths":["/opt/local-path-provisioner/worker-2-data"]
-                },
-                {
-                        "node":"worker-3",
-                        "paths":["/opt/local-path-provisioner/worker-3-data"]
-                }
-                ]
+                "sharedFileSystemPath": "/storage",
+                "nodePathMap": []
         }
   setup: |-
         #!/bin/sh
         set -eu
         mkdir -m 0777 -p "$VOL_DIR"
+        chmod 0777 -R "$VOL_DIR"
   teardown: |-
         #!/bin/sh
         set -eu
         rm -rf "$VOL_DIR"
   helperPod.yaml: |-
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: helper-pod
-        spec:
-          priorityClassName: system-node-critical
-          tolerations:
-            - key: node.kubernetes.io/disk-pressure
-              operator: Exists
-              effect: NoSchedule
-          containers:
-          - name: helper-pod
-            image: busybox
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: helper-pod
+      namespace: local-path-storage
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: helper-pod
+        image: busybox
+        imagePullPolicy: IfNotPresent
+
+
