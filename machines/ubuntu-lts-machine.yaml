@@ -28,12 +28,14 @@ portForwards:
   hostPortRange: [30000, 32767]
   hostIP:  "0.0.0.0"
 
-# Host mount for local-path-provisioner
+# Use /var/tmp directory on macOS host as local-path-provisioner add-on storage
 mountType: 9p
 mounts:
-- location: "~/.lima/_disks"
-  mountPoint: "/opt/local-path-provisioner"
+- location: "/opt/lima/storage"
+  mountPoint: "/storage"
   writable: true
+  9p:
+    securityModel: "mapped-xattr"
 
 # Enable system-wide (aka rootful)  containerd and its dependencies (BuildKit, Stargz Snapshotter)
 containerd:
@@ -110,7 +112,7 @@ provision:
     set -eux -o pipefail
 
     K8S_REPO=v1.28
-    K8S_VERSION=1.28.6
+    K8S_VERSION=1.28.7
 
     apt-get update
     apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq
