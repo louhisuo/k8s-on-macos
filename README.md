@@ -1,38 +1,36 @@
 # Kubernetes on macOS (Apple silicon)
-Kubernetes release now defaults to 1.28.6 release !!
-Note that `kube-vip` is incompatible with Kubernetes 1.29 (see issues in Github). It is possible to get this setup working with Kubernetes 1.29 by using kube-vip 0.6.3 with some workarounds. However setup is not very stable.
+Kubernetes release in this project defaults now to 1.28.7 (default release will be uplifted to 1.29.x after Kubernetes 1.30 is released).
 
-## Goals
-Setup a fully functional multi-node Kubernetes cluster on macOS (Apple silicon) with both Host-VM and VM-VM communication.
+Note: `kube-vip` add-on is incompatible with Kubernetes 1.29 (see kube-vip github issue [#684](https://github.com/kube-vip/kube-vip/issues/684)). It is possible to get this setup working with Kubernetes 1.29.x by using a [workaround](https://github.com/kube-vip/kube-vip/issues/684#issuecomment-1864855405). This workaround is also available in this project.
 
-## Prerequisites
+## Project Goal
+A fully functional multi-node Kubernetes cluster on macOS (Apple silicon) with support for both macOS Host - Virtual Machine (VM) and VM-VM communication with following cluster topologies.
 
-### Tools
-Homebrew will be used to install all tools needed on macOS host.
-- [ ] [Homebrew](https://brew.sh/)
-- [ ] [Git](https://git-scm.com/)
-- [ ] [Lima VM](https://github.com/lima-vm/lima)
-- [ ] [socket_vmnet](https://github.com/lima-vm/socket_vmnet/)
-- [ ] [cilium-cli](https://github.com/cilium/cilium-cli/)
-- [ ] [kubectl](https://github.com/kubernetes/kubectl)
-- [ ] [helm](https://helm.sh/)
+- Single Control Plane and single Worker node topology
+- Single Control Plane and three Worker nodes topology
+- High available Control Plane and three Worker nodes topology
 
 ### Current default versions
 - Lima VM 0.20.1 / socket_vmnet 1.1.4 - Virtualization
 - Ubuntu 22.04 LTS - Node images
-- Kubernetes 1.28.6 - Kubernetes release
+- Kubernetes 1.28.7 - Kubernetes release
 - Cilium 1.15.1 - CNI, L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API)
 - Gateway API 1.0 - CRDs supported by Cilium 1.15.1
 - kube-vip 0.6.3. - Kubernetes Control Plane LB
 - metrics-server 0.7.0
 - local-path-provisioner 0.0.26
 
-### Assumptions
-Git repo has been cloned to local macOS hosts. All commands are to be executed from repo root on host, unless stated otherwise.
 
-### Kubernetes cluster configurations
-- Single Control Plane and Three worker nodes Kubernetes cluster (execute steps for single Control Plane (CP) cluster configuration)
-- High Available (HA) Control Plane Kubernetes cluster with Three Control Plane and Three Worker nodes (execute all steps)
+## Prerequisites
+
+### Required Tools
+Following tools are required by this project. [Homebrew](https://brew.sh/) can be used to install these tools on macOS host.
+- [ ] [Lima VM](https://github.com/lima-vm/lima)
+- [ ] [socket_vmnet](https://github.com/lima-vm/socket_vmnet/)
+- [ ] [kubernetes-cli](https://github.com/kubernetes/kubectl)
+- [ ] [cilium-cli](https://github.com/cilium/cilium-cli/)
+- [ ] [helm](https://helm.sh/)
+- [ ] [Git](https://git-scm.com/)
 
 ### Networking
 Shared network `192.168.105.0/24` in macOS is used as it allows both Host-VM and VM-VM communication. By default Lima VM uses DHCP range until `192.168.105.99` therefore we use IP address range from `192.168.105.100` and onward in our Kubernetes setup. To have predictable node IPs for a Kubernetes cluster, it is neccessary to [reserve IPs](https://github.com/lima-vm/socket_vmnet#how-to-reserve-dhcp-addresses) to be used from DHCP server in macOS.
@@ -63,7 +61,13 @@ From the assigned address pool following IPs are "reserved", leaving 12 addresse
 - `192.168.105.241` is assigned to `Ingress` (Cilium Ingress Controller) and
 - `192.168.105.242` is reserved for `Gateway` (Cilium Gateway API). `Gateway` configuration is work in progress.
 
-#### Proxying API server to macOS host
+### Git Repository (this project)
+Git repo has been cloned to local macOS hosts. All commands are to be executed from repo root on host, unless stated otherwise.
+
+
+## Misc. Helpful Hints
+
+### Proxying API server to macOS host
 Inside a `Control Plane` node, start HTTP proxy for Kubernetes API.
 ```
 kubectl --kubeconfig $HOME/.kube/config proxy
@@ -74,18 +78,17 @@ Or on `macOS` host, start HTTP proxy for Kubernetes API.
 kubectl --kubeconfig ~/.kube/config.k8s-on-macos proxy
 ```
 
-
 Access Kubernetes API from `macOS` host using `curl`, `wget` or any `web browser` using following URL.
 ```
 http://localhost:8001/api/v1
 ```
 
-#### Exposing services via NodePort to macOS host
+### Exposing services via NodePort to macOS host
 It is possible to expose Kubernetes services via `NodePort` to `macOS` host. Full `NodePort` range `30000-32767` is exposed to `macoS` host from provisioned `Lima VM` machines during machine creation phaase.
 
 Actual services with `type: NodePort` will be available on `macOS` host via `node IP` address of any Control Plane or Worker nodes of a cluster (not via VIP address) and assigned `NodePort` value for a service.
 
-#### Troubleshooting socket_vmnet related issues
+### Troubleshooting socket_vmnet related issues
 Update sudoers config and _config/networks.yaml file.
 Currently it is neccessary to replace `socketVMNet` field in `~/.lima/_config/networks.yaml` with absolute path, instead of symbolic link and generate sudoers configuration to able to execute `limactl start`.
 
@@ -94,64 +97,64 @@ After `socket_vmnet` is upgraded, it is neccessary to adjust the absolute path i
 limactl sudoers >etc_sudoers.d_lima && sudo install -o root etc_sudoers.d_lima "/private/etc/sudoers.d/lima"
 ```
 
-## Provision machines for Kubernetes
+
+## Create Machines for Different Kubernetes Cluster Topologies 
 [Lima VM](https://github.com/lima-vm/lima) is used to provision machines for Kubernetes.
 
-Create machines (Virtual Machines (VM) for nodes) for single Control Plane (CP) cluster configuration. 
+### Single Control Plane Node and Single Worker Node Topology
+Create machines (Virtual Machines (VM) for nodes) for single Control Plane (CP) and Single Worker node cluster topology.
 ```
 limactl create --set='.networks[].macAddress="52:55:55:12:34:01"' --name cp-1 machines/ubuntu-lts-machine.yaml --tty=false
 limactl create --set='.networks[].macAddress="52:55:55:12:34:04"' --name worker-1 machines/ubuntu-lts-machine.yaml --tty=false
+```
+
+Start machines. 
+```
+limactl start cp-1
+limactl start worker-1
+```
+
+### Single Control Plane Node and Three Worker Node Topology
+Additional steps. Skip this step for single Worker Node cluster topology.
+
+Create two additional machines (Virtual Machines (VM) for nodes) for three Worker Nodes cluster topology.
+```
 limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-lts-machine.yaml --tty=false
 limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --tty=false
 ```
 
-Create machines for other Control Plane (CP) nodes to implement HA cluster configuration. Skip this step for single Control Plane Kubernetes cluster configuration.
+Start machines. 
+```
+limactl start worker-2
+limactl start worker-3
+```
+
+### High Available Control Plane Node and Three Worker Node Topology
+Additional steps. Skip this step for single Control Plane cluster topology.
+
+Create two additional machines for Control Plane (CP) nodes to implement HA cluster topology.
 ```
 limactl create --set='.networks[].macAddress="52:55:55:12:34:02"' --name cp-2 machines/ubuntu-lts-machine.yaml --tty=false
 limactl create --set='.networks[].macAddress="52:55:55:12:34:03"' --name cp-3 machines/ubuntu-lts-machine.yaml --tty=false
 ```
 
-Please note that machine template file provisions components of the latest Kubernetes release.
-
-Start machines for single Control Plane (CP) configuration. 
-```
-limactl start cp-1
-limactl start worker-1
-limactl start worker-2
-limactl start worker-3
-```
-
-Start machines for other Control Plane (CP) nodes to implement HA cluster configuration. Skip this step for single Control Plane Kubernetes cluster configuration.
+Start machines.
 ```
 limactl start cp-2
 limactl start cp-3
 ```
 
-Check that all all machines are running
-```
-limactl list
-```
+## Initiate Kubernetes Cluster with Different Cluster Topologies 
 
+### Single Control Plane Node and Single Worker Node Topology
 
-## Initiate Kubernetes cluster
-
-### Prerequisites
-Copy `kubeadm` config files into the machines for single Control Plane (CP) configuration.
+#### Prerequisites
+Copy `kubeadm` config files into the machines.
 ```
 limactl cp manifests/kubeadm/cp-1-init-cfg.yaml cp-1:
 limactl cp manifests/kubeadm/worker-1-join-cfg.yaml worker-1:
-limactl cp manifests/kubeadm/worker-2-join-cfg.yaml worker-2:
-limactl cp manifests/kubeadm/worker-3-join-cfg.yaml worker-3:
 ```
 
-Copy `kubeadm` config files into the other Control Plane (CP) node machines to implement HA cluster configuration. Skip this step for single Control Plane Kubernetes cluster configuration.
-```
-limactl cp manifests/kubeadm/cp-2-join-cfg.yaml cp-2:
-limactl cp manifests/kubeadm/cp-3-join-cfg.yaml cp-3:
-```
-
-
-### Setup single Control Plane (CP) Kubernetes cluster with three worker nodes
 #### Initiate Kubernetes Control Plane (CP) in CP-1 machine
 Following steps are to be run inside of `cp-1` machine
 
@@ -187,7 +190,7 @@ Patch `kube-vip.yaml` to use admin.conf after `kubeadm init` has been successful
 sudo sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' /etc/kubernetes/manifests/kube-vip.yaml
 ```
 
-#### Setup kubeconfig for a regular user
+#### Setup kubeconfig for a regular user on macOS host
 Inside of `cp-1` machine copy `kubeconfig` for a regular user
 ```
 mkdir -p $HOME/.kube
@@ -209,6 +212,19 @@ Join `worker-1`
 sudo kubeadm join --config worker-1-join-cfg.yaml
 ```
 
+### Single Control Plane Node and Three Worker Node Topology
+Additional steps. Skip this step for single Worker Node cluster topology.
+
+#### Prerequisites
+Copy `kubeadm` config files into the machines.
+```
+limactl cp manifests/kubeadm/worker-2-join-cfg.yaml worker-2:
+limactl cp manifests/kubeadm/worker-3-join-cfg.yaml worker-3:
+```
+
+#### Join worker nodes to Kubernetes cluster
+Following steps are to be run inside of respective worker node machines
+
 Join `worker-2`
 ```
 sudo kubeadm join --config worker-2-join-cfg.yaml
@@ -219,8 +235,17 @@ Join `worker-3`
 sudo kubeadm join --config worker-3-join-cfg.yaml
 ```
 
+### High Available Control Plane Node and Three Worker Node Topology
+Additional steps. Skip this step for single Control Plane cluster topology.
 
-### Join other Control Plane (CP) nodes to implement High Available (HA) Kubernetes cluster
+#### Prerequisites
+Copy `kubeadm` config files into the machines.
+```
+limactl cp manifests/kubeadm/cp-2-join-cfg.yaml cp-2:
+limactl cp manifests/kubeadm/cp-3-join-cfg.yaml cp-3:
+```
+
+#### Join other Control Plane (CP) nodes to implement High Available (HA) Kubernetes cluster
 Following steps are to be run inside of `cp-2`  machine`. Skip these steps for single Control Plane Kubernetes cluster configuration.
 
 Generate `kube-vip` static pod manifest
@@ -279,6 +304,8 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
+## Post Cluster Creation Steps
+
 ### Manual approval of kubelet serving certificates
 Approve any pending `kubelet-serving` certificate
 ```
@@ -286,7 +313,9 @@ kubectl get csr
 kubectl get csr | grep "Pending" | awk '{print $1}' | xargs kubectl certificate approve
 ```
 
-### Install Gateway API
+### Install Cilium CNI
+
+#### Install Gateway API Custom Resource Definitions
 Install Gateway API CRDs supported by Cilium.
 ```
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -297,7 +326,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
 ```
 
-### Install and configure Cilium CNI
+#### Install and configure Cilium CNI
 Install CNI (Cilium) with L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API) support enabled.
 ```
 export CILIUM_VERSION=1.15.1
@@ -314,14 +343,13 @@ Configure Gateway (default)
 kubectl apply -f manifests/cilium/gtw-cfg.yaml
 ```
 
-## Install add-ons
-### Metrics server
+### Install Metrics server add-on
 Install metrics server
 ```
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
 
-### Local path provisioner
+### Install Local path provisioner CSI
 Install local path provisioner
 ```
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.26/deploy/local-path-storage.yaml
