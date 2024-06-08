@@ -13,12 +13,12 @@ A fully functional multi-node Kubernetes cluster on macOS (Apple silicon) with s
 ### Current default versions
 - Lima VM 0.20.1 / socket_vmnet 1.1.4 - Virtualization
 - Ubuntu 22.04 LTS - Node images
-- Kubernetes 1.28.7 - Kubernetes release
-- Cilium 1.15.1 - CNI, L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API)
+- Kubernetes 1.29.5 - Kubernetes release
+- Cilium 1.15.5 - CNI, L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API)
 - Gateway API 1.0 - CRDs supported by Cilium 1.15.1
-- kube-vip 0.6.3. - Kubernetes Control Plane LB
-- metrics-server 0.7.0
-- local-path-provisioner 0.0.26
+- kube-vip 0.8.0 - Kubernetes Control Plane LB
+- metrics-server 0.7.1
+- local-path-provisioner 0.0.27
 
 
 ## Prerequisites
@@ -160,7 +160,7 @@ Following steps are to be run inside of `cp-1` machine
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.7.1
+export KVVERSION=v0.8.0
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -250,7 +250,7 @@ Following steps are to be run inside of `cp-2`  machine`. Skip these steps for s
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.7.1
+export KVVERSION=v0.8.0
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -279,7 +279,7 @@ Following steps are to be run inside of `cp-3` node machine`
 
 Generate `kube-vip` static pod manifest
 ```
-export KVVERSION=v0.7.1
+export KVVERSION=v0.8.0
 export INTERFACE=lima0
 export VIP=192.168.105.100
 sudo ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
@@ -329,7 +329,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v
 #### Install and configure Cilium CNI
 Install CNI (Cilium) with L2 LB, L7 LB (Ingress Controller) and L4/L7 LB (Gateway API) support enabled.
 ```
-export CILIUM_VERSION=1.15.1
+export CILIUM_VERSION=1.15.5
 helm install cilium cilium/cilium --version $CILIUM_VERSION --namespace kube-system --values manifests/cilium/values.yaml
 ```
 
@@ -346,13 +346,13 @@ kubectl apply -f manifests/cilium/gtw-cfg.yaml
 ### Install Metrics server add-on
 Install metrics server
 ```
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.7.1/components.yaml
 ```
 
 ### Install Local path provisioner CSI
 Install local path provisioner
 ```
-kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.26/deploy/local-path-storage.yaml
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.27/deploy/local-path-storage.yaml
 ```
 
 Apply local path provisioner configuration. There will be a delay after `configmap` is applied before the provisioner picks it up.
