@@ -111,8 +111,8 @@ provision:
     #!/bin/bash
     set -eux -o pipefail
 
-    K8S_REPO=v1.28
-    K8S_VERSION=1.28.7
+    K8S_REPO=v1.29
+    K8S_VERSION=1.29.5
 
     apt-get update
     apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq
