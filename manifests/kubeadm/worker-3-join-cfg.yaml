@@ -6,7 +6,7 @@
 # For cluster initial bootstrap convinience 'token' is preconfigured in kubeadm init/join config files and 'unsafeSkipCAVerification' is set.
 # This is INSECURE approach but as a bootstrapped cluster is assumed to be shortlived sandbox and running in closed environment this approach was considered acceptable tradeoff.
 #
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: JoinConfiguration
 discovery:
   bootstrapToken:
@@ -17,5 +17,6 @@ nodeRegistration:
   name: "worker-3"
   criSocket: "unix:///var/run/containerd/containerd.sock"
   kubeletExtraArgs:
-    node-ip: 192.168.105.106
+  - name: node-ip
+    value: 192.168.105.106
   ignorePreflightErrors:
