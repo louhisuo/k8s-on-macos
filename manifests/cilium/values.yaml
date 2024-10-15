@@ -19,13 +19,55 @@ k8sClientRateLimit:
   qps: 50
   burst: 100
 
-# Enable cilium ingress controller
+# Enable default shared Cilium Ingress Controller
 ingressController:
   enabled: true
   default: true
   loadbalancerMode: shared
   service:
-    loadBalancerIP: "192.168.105.241"
+    annotations:
+      "io.cilium/lb-ipam-ips": "192.168.105.254"
+
+# Enable support for Gateway API in cilium
+gatewayAPI:
+  enabled: true
+
+# Cilium operator configuration
+operator:
+  enabled: true
+  replicas: 2
+  rollOutPods: true
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            values:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: io.cilium/app
+              operator: In
+              values:
+              - operator
+          topologyKey: kubernetes.io/hostname
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+# Cilium Envoy configuration
+envoy:
+  enabled: true
+  rollOutPods: true
+
+# Cilium Agent configuration
+rollOutCiliumPods: true
 
 # Enable support for Gateway API in cilium
 gatewayAPI:
