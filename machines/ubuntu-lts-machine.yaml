@@ -50,7 +50,7 @@ provision:
     set -eux -o pipefail
 
     cat <<EOF | tee -a /etc/hosts
-    192.168.105.100 sandbox sandbox.k8s.jalonet.io
+    192.168.105.100 sandbox sandbox.k8s.internal
     192.168.105.101 cp-1
     192.168.105.102 cp-2
     192.168.105.103 cp-3
@@ -111,8 +111,8 @@ provision:
     #!/bin/bash
     set -eux -o pipefail
 
-    K8S_REPO=v1.31
-    K8S_VERSION=1.31.1
+    K8S_REPO=v1.33
+    K8S_VERSION=1.33.3
 
     apt-get update
     apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq

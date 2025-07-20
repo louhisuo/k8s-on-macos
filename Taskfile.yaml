@@ -1,0 +1,10 @@
+---
+version: "3"
+
+vars:
+
+tasks:
+  default: task --list
+
+includes:
+  brew: taskfiles/brew

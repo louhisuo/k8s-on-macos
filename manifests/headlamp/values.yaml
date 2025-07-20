@@ -1,0 +1,14 @@
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-ca
+  ingressClassName: "cilium"
+  hosts:
+    - host: headlamp.sandbox.k8s.internal
+      paths:
+      - path: /
+        type: Prefix
+  tls:
+  - secretName: headlamp-tls-cert
+    hosts:
+      - headlamp.sandbox.k8s.internal

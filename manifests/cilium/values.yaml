@@ -35,32 +35,9 @@ gatewayAPI:
 # Cilium operator configuration
 operator:
   enabled: true
-  replicas: 2
+  replicas: 1
   rollOutPods: true
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: node-role.kubernetes.io/control-plane
-            operator: Exists
-            values:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-            - key: io.cilium/app
-              operator: In
-              values:
-              - operator
-          topologyKey: kubernetes.io/hostname
-  tolerations:
-  - key: node-role.kubernetes.io/control-plane
-    operator: Exists
-    effect: NoSchedule
-
+  
 # Cilium Envoy configuration
 envoy:
   enabled: true
@@ -68,8 +45,3 @@ envoy:
 
 # Cilium Agent configuration
 rollOutCiliumPods: true
-
-# Enable support for Gateway API in cilium
-gatewayAPI:
-  enabled: true
-

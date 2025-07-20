@@ -3,6 +3,10 @@ kind: CiliumL2AnnouncementPolicy
 metadata:
   name: default
 spec:
+  nodeSelector:
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: DoesNotExist
   interfaces:
   - lima0
   externalIPs: true
@@ -13,5 +17,6 @@ kind: CiliumLoadBalancerIPPool
 metadata:
   name: "default"
 spec:
-  cidrs:
-  - cidr: "192.168.105.240/28"
+  blocks:
+  - start: 192.168.105.240
+    stop: 192.168.105.254

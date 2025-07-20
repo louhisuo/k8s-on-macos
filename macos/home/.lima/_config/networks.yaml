@@ -1,0 +1,26 @@
+# https://github.com/lima-vm/lima/blob/master/pkg/networks/networks.TEMPLATE.yaml
+paths:
+  socketVMNet: "/opt/socket_vmnet/bin/socket_vmnet"
+  varRun: /private/var/run/lima
+  sudoers: /private/etc/sudoers.d/lima
+
+group: everyone
+
+networks:
+  user-v2:
+    mode: user-v2
+    gateway: 192.168.104.1
+    netmask: 255.255.255.0
+  shared:
+    mode: shared
+    gateway: 192.168.105.1
+    dhcpEnd: 192.168.105.99
+    netmask: 255.255.255.0
+  bridged:
+    mode: bridged
+    interface: en0
+  host:
+    mode: host
+    gateway: 192.168.106.1
+    dhcpEnd: 192.168.106.254
+    netmask: 255.255.255.0
