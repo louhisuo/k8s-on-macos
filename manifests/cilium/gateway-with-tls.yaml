@@ -1,0 +1,30 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: default
+  namespace: kube-system
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-ca
+spec:
+  gatewayClassName: cilium
+  addresses:
+  - value: 192.168.105.253
+  listeners:
+  - name: headlamp
+    protocol: HTTP
+    port: 80
+    hostname: headlamp.sandbox.k8s.internal
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: headlamp-tls
+    protocol: HTTPS
+    port: 443
+    hostname: headlamp.sandbox.k8s.internal
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: headlamp-gtw-tls-cert
+    allowedRoutes:
+      namespaces:
+        from: All

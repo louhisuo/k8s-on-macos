@@ -18,12 +18,14 @@ spec:
   secretName: root-ca
   duration: 2160h
   renewBefore: 1800h
-  commonName: k8s.internal
+  commonName: Selfsigned root CA
   subject:
     organizations:
-    - Kubernetes sandbox
+    - Kubernetes
+    organizationalUnits:
+    - Sandbox
   dnsNames:
-  - k8s.internal
+  - sandbox.k8s.internal
   issuerRef:
     name: root-ca-selfsigned
     kind: ClusterIssuer

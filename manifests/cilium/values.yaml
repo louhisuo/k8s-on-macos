@@ -2,6 +2,11 @@
 k8sServiceHost: "192.168.105.100"
 k8sServicePort: "6443"
 
+# Configure client side rate limit for the agent and operator
+k8sClientRateLimit:
+  qps: 50
+  burst: 100
+
 # Enable kube-proxy replacement in Cilium BPF datapath
 kubeProxyReplacement: "true"
 
@@ -9,28 +14,6 @@ kubeProxyReplacement: "true"
 ipam:
   operator:
     clusterPoolIPv4PodCIDRList: ["10.244.0.0/16"]
-
-# Enable L2 announcements / L2 aware LB
-l2announcements:
-  enabled: true
-
-# Configure client side rate limit for the agent and operator
-k8sClientRateLimit:
-  qps: 50
-  burst: 100
-
-# Enable default shared Cilium Ingress Controller
-ingressController:
-  enabled: true
-  default: true
-  loadbalancerMode: shared
-  service:
-    annotations:
-      "io.cilium/lb-ipam-ips": "192.168.105.254"
-
-# Enable support for Gateway API in cilium
-gatewayAPI:
-  enabled: true
 
 # Cilium operator configuration
 operator:
@@ -45,3 +28,20 @@ envoy:
 
 # Cilium Agent configuration
 rollOutCiliumPods: true
+
+# Enable L2 announcements / L2 aware LB
+l2announcements:
+  enabled: true
+
+# Enable shared Cilium Ingress Controller as a default Kubernetes Ingress
+ingressController:
+  enabled: true
+  default: true
+  loadbalancerMode: shared
+  service:
+    annotations:
+      "lbipam.cilium.io/ips": "192.168.105.254"
+
+# Enable Gateway API
+gatewayAPI:
+  enabled: true

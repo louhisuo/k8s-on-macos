@@ -37,6 +37,8 @@ spec:
       value: "3"
     - name: vip_retryperiod
       value: "1"
+    - name: enable_node_labeling
+      value: "true"
     - name: lb_enable
       value: "true"
     - name: lb_port
