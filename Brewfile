@@ -1,3 +1,6 @@
+tap 'go-task/tap'
+brew 'go-task'
+
 brew "cilium-cli"
 brew 'curl'
 brew "git"

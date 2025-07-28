@@ -1,0 +1,63 @@
+---
+version: "3"
+
+tasks:
+  create-machines-for-minimal-topology:
+    cmds:
+      - limactl create machines/ubuntu-lts-machine.yaml --name cp-1 --set='.networks[].macAddress="52:55:55:12:34:01"' --tty=false
+      - limactl create machines/ubuntu-lts-machine.yaml --name worker-1 --set='.networks[].macAddress="52:55:55:12:34:04"' --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
+
+  create-machines-for-non-ha-topology:
+    cmds:
+      - limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-lts-machine.yaml --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
+      - limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
+
+  create-machines-for-ha-topology:
+    cmds:
+      - limactl create machines/ubuntu-lts-machine.yaml --name cp-2 --set='.networks[].macAddress="52:55:55:12:34:02"' --tty=false
+      - limactl create machines/ubuntu-lts-machine.yaml --name cp-3 --set='.networks[].macAddress="52:55:55:12:34:03"' --tty=false
+
+  start-machines-for-non-ha-topology:
+    cmds:
+      - limactl start worker-2
+      - limactl start worker-3
+
+  start-machines-for-minimal-topology:
+    cmds:
+      - limactl start cp-1
+      - limactl start worker-1
+
+  start-machines-for-ha-topology:
+    cmds:
+      - limactl start cp-2
+      - limactl start cp-3
+
+  stop-machines-in-minimal-topology:
+    cmds:
+      - limactl stop worker-1
+      - limactl stop cp-1
+
+  stop-machines-in-non-ha-topology:
+    cmds:
+      - limactl stop worker-3
+      - limactl stop worker-2
+
+  stop-machines-in-ha-topology:
+    cmds:
+      - limactl stop cp-3
+      - limactl stop cp-2
+
+  force-delete-machines-in-minimal-topology:
+    cmds:
+      - limactl delete --force worker-1
+      - limactl delete --force cp-1
+
+  force-delete-machines-in-non-ha-topology:
+    cmds:
+      - limactl delete --force worker-3
+      - limactl delete --force worker-2
+
+  force-delete-machines-in-ha-topology:
+    cmds:
+      - limactl delete --force cp-3
+      - limactl delete --force cp-2

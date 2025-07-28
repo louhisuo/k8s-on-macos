@@ -148,48 +148,32 @@ sudo chmod 777 /opt/lima
 ```
 
 ## Create Machines for Different Kubernetes Cluster Topologies
+Machine life cycle for different Kubernetes cluster topologies is now automated by using Taskfile. With automation it is possible to provision machines for a specified Kubernetes cluster topology, stop all machines in a specified cluster topology and force delete all running or stopped machines in a specified cluster topology.
+
+Supported Kubernetes cluster topologies are
+- Single Control Plane Node and Single Worker Node topology (minimal)
+- Single Control Plane Node and Three Worker Nodes topology (non-ha) and
+- Three Control Plane Nodes and Three Worker Nodes topology (ha)
+
+How to use
+- To provision machines use task runner `task provision-machines -- <minimal | non-ha | ha>
+- To stop machines use task runner `task stop-machines -- <minimal | non-ha | ha>
+- To force delete machines use task runner `task delete-machines -- <minimal | non-ha | ha>
+- Modify environment variables in the file `machines.env` to adjust Worker Nodes CPUs, Memory and Disk
 
 ### Single Control Plane Node and Single Worker Node Topology
-Create machines (Virtual Machines (VM) for nodes) for single Control Plane (CP) and Single Worker node cluster topology.
 ```
-limactl create --set='.networks[].macAddress="52:55:55:12:34:01"' --name cp-1 machines/ubuntu-lts-machine.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:04"' --name worker-1 machines/ubuntu-lts-machine.yaml --tty=false
+task provision-machines -- minimal
 ```
 
-Start machines. 
+### Single Control Plane Node and Three Worker Nodes Topology
 ```
-limactl start cp-1
-limactl start worker-1
-```
-
-### Single Control Plane Node and Three Worker Node Topology
-Additional steps. Skip this step for single Worker Node cluster topology.
-
-Create two additional machines (Virtual Machines (VM) for nodes) for three Worker Nodes cluster topology.
-```
-limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-lts-machine.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --tty=false
+task provision-machines -- non-ha
 ```
 
-Start machines. 
+### Three Control Plane Nodes and Three Worker Nodes Topology
 ```
-limactl start worker-2
-limactl start worker-3
-```
-
-### HA Control Plane and Three Worker Node Topology
-Additional steps. Skip this step for single Control Plane cluster topology.
-
-Create two additional machines for Control Plane (CP) nodes to implement HA cluster topology.
-```
-limactl create --set='.networks[].macAddress="52:55:55:12:34:02"' --name cp-2 machines/ubuntu-lts-machine.yaml --tty=false
-limactl create --set='.networks[].macAddress="52:55:55:12:34:03"' --name cp-3 machines/ubuntu-lts-machine.yaml --tty=false
-```
-
-Start machines.
-```
-limactl start cp-2
-limactl start cp-3
+task provision-machines -- ha
 ```
 
 ## Deploy Kubernetes Cluster with Different Kubernetes Cluster Topologies

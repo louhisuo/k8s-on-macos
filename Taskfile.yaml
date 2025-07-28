@@ -1,10 +1,92 @@
 ---
 version: "3"
 
-vars:
+dotenv: ['machines.env']
 
 tasks:
-  default: task --list
+  brew-install:
+    vars:
+      BREWFILE: "{{.ROOT_DIR}}/Brewfile"
+
+    desc: Install tools required for 'k8s-on-macos' project with Brew
+    cmd: brew bundle --file {{.BREWFILE}}
+    preconditions:
+      - { msg: "Missing Homebrew", sh: "command -v brew" }
+      - { msg: "Missing Brewfile", sh: "test -f {{.BREWFILE}}" }
+
+  provision-machines:
+    desc: Provisions machines for a specified Kubernetes cluster topology
+    cmd: |
+      sh -c '{{ if eq .CLI_ARGS "minimal" }}
+                    task machines:create-machines-for-minimal-topology &&
+                    task machines:start-machines-for-minimal-topology
+             {{ else if eq .CLI_ARGS "non-ha" }}
+                    task machines:create-machines-for-minimal-topology &&
+                    task machines:create-machines-for-non-ha-topology &&
+                    task machines:start-machines-for-minimal-topology &&
+                    task machines:start-machines-for-non-ha-topology
+             {{ else if eq .CLI_ARGS "ha" }}
+                    task machines:create-machines-for-minimal-topology &&
+                    task machines:create-machines-for-non-ha-topology &&
+                    task machines:create-machines-for-ha-topology &&
+                    task machines:start-machines-for-minimal-topology &&
+                    task machines:start-machines-for-non-ha-topology &&
+                    task machines:start-machines-for-ha-topology
+             {{ else }}
+                    echo "Not supported"                
+             {{ end }}'
+    silent: true
+
+  stop-machines:
+    desc: Stops all running machines in a specified Kubernetes cluster topology
+    cmd: |
+      sh -c '{{ if eq .CLI_ARGS "minimal" }}
+                    task machines:stop-machines-in-minimal-topology
+             {{ else if eq .CLI_ARGS "non-ha" }}
+                    task machines:stop-machines-in-non-ha-topology &&
+                    task machines:stop-machines-in-minimal-topology
+             {{ else if eq .CLI_ARGS "ha" }}
+                    task machines:stop-machines-in-non-ha-topology &&
+                    task machines:stop-machines-in-ha-topology &&
+                    task machines:stop-machines-in-minimal-topology
+             {{ else }}
+                    echo "Not supported"                
+             {{ end }}'
+    silent: true
+
+  delete-machines:
+    desc: Force deletes all running or stopped machines in a specified Kubernetes cluster topology
+    cmd: |
+      sh -c '{{ if eq .CLI_ARGS "minimal" }}
+                    task machines:force-delete-machines-in-minimal-topology
+             {{ else if eq .CLI_ARGS "non-ha" }}
+                    task machines:force-delete-machines-in-non-ha-topology &&
+                    task machines:force-delete-machines-in-minimal-topology
+             {{ else if eq .CLI_ARGS "ha" }}
+                    task machines:force-delete-machines-in-non-ha-topology &&
+                    task machines:force-delete-machines-in-ha-topology &&
+                    task machines:force-delete-machines-in-minimal-topology
+             {{ else }}
+                    echo "Not supported"                
+             {{ end }}'
+    silent: true
+
+  list-machines:
+    desc: Lists all currently provisioned machines
+    cmd: limactl list
+    silent: true
+
+  default: 
+    cmd: task --list --sort none
+    silent: true
+
+  test:
+    desc: A Task runner for misc. testing. Use this if you want to experiment something ..
+    cmds:
+      - echo "Modify me as needed for your Task runner testing .."
 
 includes:
-  brew: taskfiles/brew
+  machines:
+    taskfile: taskfiles/machines.yaml
+#    internal: true
+    silent: true
