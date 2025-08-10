@@ -1,0 +1,69 @@
+#
+# kubeadm init config for Single / High Available (HA) Control Plane and multiple Worker nodes cluster.
+#
+# advertiseAddress, node-ip and controlPlaneEndpoint must match with 'lima0' interface (shared network assumed).
+# podSubnet range needs to match with CNI, Cilium uses its own resource for pod network,and --ipam.operator.clusterPoolIPv4PodCIDRList is used to change from Cilium default.
+# For cluster initial bootstrap convinience 'token' and 'certificateKey' are preconfigured in kubeadm init/join config files.
+# This is INSECURE approach but as a bootstrapped cluster is assumed to be shortlived sandbox and running in closed environment this approach was considered acceptable tradeoff.
+#
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+bootstrapTokens:
+- token: "9a08jv.c0izixklcxtmnze7"
+  description: "Initial bootstrap token for the first time setup of a kubernetes cluster"
+  ttl: "1h"
+  usages:
+  - authentication
+  - signing
+  groups:
+  - system:bootstrappers:kubeadm:default-node-token
+certificateKey: "c411505d8504115b928286cc37a83c230d80c4db06bdf19d8f64828e3724d363"
+localAPIEndpoint:
+  advertiseAddress: 192.168.105.101
+  bindPort: 6443
+nodeRegistration:
+  name: "cp-1"
+  criSocket: "unix:///var/run/containerd/containerd.sock"
+  imagePullPolicy: "IfNotPresent"
+  imagePullSerial: false
+  # See Github kubernetes/kubernetes -> cmd/kubeadm/app/preflight/checks.go
+  ignorePreflightErrors:
+    - NumCPU
+    - Mem
+  kubeletExtraArgs:
+  - name: node-ip
+    value: 192.168.105.101
+skipPhases:
+  - addon/kube-proxy
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+clusterName: "sandbox"
+kubernetesVersion: "v1.33.3"
+controlPlaneEndpoint: 192.168.105.100:6443
+featureGates:
+networking:
+  serviceSubnet: "10.96.0.0/16"
+  podSubnet: "10.244.0.0/16"
+  dnsDomain: "cluster.local"
+proxy:
+  disabled: true
+apiServer:
+  certSANs:
+  - "127.0.0.1"
+  - "192.168.105.100"
+  - "192.168.105.101"
+  - "192.168.105.102"
+  - "192.168.105.103"
+  - "sandbox.k8s.internal"
+  extraArgs:
+  - name: event-ttl
+    value: 3h0m0s
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+# 'kubectl get csr' / 'kubectl certificate approve' are used to approve kubernetes.io/kubelet-serving CSRs
+rotateCertificates: true
+serverTLSBootstrap: true
+serializeImagePulls: false
+featureGates:

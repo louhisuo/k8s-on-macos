@@ -1,0 +1,190 @@
+---
+version: "3"
+
+tasks:
+  bootstrap:
+    desc: Bootstraps a Kubernetes cluster with specified cluster topology (minimal | non-ha | ha)
+    silent: true
+    cmds:
+      - '{{ if eq .CLI_ARGS "minimal" }}
+               task kubernetes:bootstrap-minimal
+         {{ else if eq .CLI_ARGS "non-ha" }}
+               task kubernetes:bootstrap-non-ha
+         {{ else if eq .CLI_ARGS "ha" }}
+               task kubernetes:bootstrap-ha
+         {{ else }}
+               echo "Kubernetes cluster topology is not supported"                
+         {{ end }}'
+
+
+  bootstrap-minimal:
+    silent: true
+    cmds:
+      - task: generate-kubernetes-init-config
+      - task: init-cp-1
+      - task: join-worker-1
+      - task kubernetes:copy-kubeconfig -- cp-1
+      - task kubernetes:copy-kubeconfig-to-host -- cp-1
+      - task: sign-certificate-signing-requests
+      - task: install-cilium-cni
+      - task: install-local-path-provisioner-csi
+      - task: install-flux-operator
+
+  bootstrap-non-ha:
+    silent: true
+    cmds:
+      - task: generate-kubernetes-init-config
+      - task: init-cp-1
+      - task: join-worker-1
+      - task: join-worker-2
+      - task: join-worker-3
+      - task kubernetes:copy-kubeconfig -- cp-1
+      - task kubernetes:copy-kubeconfig-to-host -- cp-1
+      - task: sign-certificate-signing-requests
+      - task: install-cilium-cni
+      - task: install-local-path-provisioner-csi
+      - task: install-flux-operator
+
+  bootstrap-ha:
+    silent: true
+    cmds:
+      - task: generate-kubernetes-init-config
+      - task: init-cp-1
+      - task: join-cp-2
+      - task: join-cp-3
+      - task: join-worker-1
+      - task: join-worker-2
+      - task: join-worker-3
+      - task kubernetes:copy-kubeconfig -- cp-1
+      - task kubernetes:copy-kubeconfig -- cp-2
+      - task kubernetes:copy-kubeconfig -- cp-3
+      - task kubernetes:copy-kubeconfig-to-host -- cp-1
+      - task: sign-certificate-signing-requests
+      - task: install-cilium-cni
+      - task: install-local-path-provisioner-csi
+      - task: install-flux-operator
+
+
+  generate-kubernetes-init-config:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mGenerating Kubernetes init configuration based on Kubernetes version defined in 'k8s-on-macos.env\e[0m"
+      - |
+        sed "s#<KUBERNETES_VERSION>#$(grep -e 'KUBERNETES_VERSION' k8s-on-macos.env | awk '{gsub(/[^.0-9]/, ""); printf "\"v%s\"",$1}')#g" manifests/kubeadm/cp-1-init-cfg.templ.yaml | tee manifests/kubeadm/cp-1-init-cfg.yaml >/dev/null
+
+  init-cp-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mInitializing Kubernetes control plane on 'cp-1'\e[0m"
+      - scp -F /Users/$USER/.lima/cp-1/ssh.config manifests/kubeadm/cp-1-init-cfg.yaml lima-cp-1:.
+      - scp -F /Users/$USER/.lima/cp-1/ssh.config manifests/kube-vip/kube-vip.yaml lima-cp-1:.
+      - ssh -F /Users/$USER/.lima/cp-1/ssh.config lima-cp-1 sudo mv kube-vip.yaml /etc/kubernetes/manifests
+      - |
+        ssh -F /Users/$USER/.lima/cp-1/ssh.config lima-cp-1 "sudo sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' /etc/kubernetes/manifests/kube-vip.yaml"
+      - ssh -F /Users/$USER/.lima/cp-1/ssh.config lima-cp-1 sudo kubeadm init --upload-certs --config cp-1-init-cfg.yaml
+      - |
+        ssh -F /Users/$USER/.lima/cp-1/ssh.config lima-cp-1 "sudo sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' /etc/kubernetes/manifests/kube-vip.yaml"
+
+  join-cp-2:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mJoining control plane node 'cp-2' to Kubernetes cluster\e[0m"
+      - scp -F /Users/$USER/.lima/cp-2/ssh.config manifests/kubeadm/cp-2-join-cfg.yaml lima-cp-2:.
+      - scp -F /Users/$USER/.lima/cp-2/ssh.config manifests/kube-vip/kube-vip.yaml lima-cp-2:.
+      - ssh -F /Users/$USER/.lima/cp-2/ssh.config lima-cp-2 sudo mv kube-vip.yaml /etc/kubernetes/manifests
+      - ssh -F /Users/$USER/.lima/cp-2/ssh.config lima-cp-2 sudo kubeadm join --config cp-2-join-cfg.yaml
+
+  join-cp-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mJoining control plane node 'cp-3' to Kubernetes cluster\e[0m"
+      - scp -F /Users/$USER/.lima/cp-3/ssh.config manifests/kubeadm/cp-3-join-cfg.yaml lima-cp-3:.
+      - scp -F /Users/$USER/.lima/cp-3/ssh.config manifests/kube-vip/kube-vip.yaml lima-cp-3:.
+      - ssh -F /Users/$USER/.lima/cp-3/ssh.config lima-cp-3 sudo mv kube-vip.yaml /etc/kubernetes/manifests
+      - ssh -F /Users/$USER/.lima/cp-3/ssh.config lima-cp-3 sudo kubeadm join --config cp-3-join-cfg.yaml
+
+  join-worker-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mJoining worker node 'worker-1' to Kubernetes cluster\e[0m"
+      - scp -F /Users/$USER/.lima/worker-1/ssh.config manifests/kubeadm/worker-1-join-cfg.yaml lima-worker-1:.
+      - ssh -F /Users/$USER/.lima/worker-1/ssh.config lima-worker-1 sudo kubeadm join --config worker-1-join-cfg.yaml
+
+  join-worker-2:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mJoining worker node 'worker-2' to Kubernetes cluster\e[0m"
+      - scp -F /Users/$USER/.lima/worker-2/ssh.config manifests/kubeadm/worker-2-join-cfg.yaml lima-worker-2:.
+      - ssh -F /Users/$USER/.lima/worker-2/ssh.config lima-worker-2 sudo kubeadm join --config worker-2-join-cfg.yaml
+
+  join-worker-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mJoining worker node 'worker-3' to Kubernetes cluster\e[0m"
+      - scp -F /Users/$USER/.lima/worker-3/ssh.config manifests/kubeadm/worker-3-join-cfg.yaml lima-worker-3:.
+      - ssh -F /Users/$USER/.lima/worker-3/ssh.config lima-worker-3 sudo kubeadm join --config worker-3-join-cfg.yaml
+
+  copy-kubeconfig:
+    silent: true
+#    internal: true
+    cmds:
+      - echo -e "\e[0;32mCopying admin kubeconfig within '{{ .CLI_ARGS }}' control plane node\e[0m"
+      - ssh -F /Users/$USER/.lima/{{ .CLI_ARGS }}/ssh.config lima-{{ .CLI_ARGS }} 'mkdir -p $HOME/.kube'
+      - ssh -F /Users/$USER/.lima/{{ .CLI_ARGS }}/ssh.config lima-{{ .CLI_ARGS }} 'sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config'
+      - ssh -F /Users/$USER/.lima/{{ .CLI_ARGS }}/ssh.config lima-{{ .CLI_ARGS }} 'sudo chown $(id -u):$(id -g) $HOME/.kube/config'
+
+  copy-kubeconfig-to-host:
+    silent: true
+#    internal: true
+    cmds:
+      - echo -e "\e[0;32mCopying admin kubeconfig from '{{ .CLI_ARGS }}' control plane node to host\e[0m"
+      - scp -F /Users/$USER/.lima/{{ .CLI_ARGS }}/ssh.config lima-{{ .CLI_ARGS }}:.kube/config ~/.kube/config.k8s-on-macos
+      - chown $(id -u):$(id -g) ~/.kube/config.k8s-on-macos
+      - export KUBECONFIG=~/.kube/config.k8s-on-macos
+      
+  sign-certificate-signing-requests:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mSign all pending kubelet certificate signing requests\e[0m"
+      - sleep 5
+      - kubectl get csr
+      - kubectl get csr | grep "Pending" | awk '{print $1}' | xargs kubectl certificate approve
+
+  install-cilium-cni:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mInstalling Cilium CNI\e[0m"
+      - kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v{{ .GATEWAYAPI_VERSION }}/standard-install.yaml
+      - kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v{{ .GATEWAYAPI_VERSION }}/experimental-install.yaml
+      - helm repo add cilium https://helm.cilium.io/ --force-update
+      - helm install cilium cilium/cilium --version {{ .CILIUM_CHART_VERSION }} --namespace kube-system --values manifests/cilium/values.yaml
+      - cilium status --wait
+      - echo "Configuring L2 announcements and default address pool for L2 aware LB"
+      - echo "Note that gateway resource in Gateway API is configured as when Kubernetes addons are installed, as 'default' gateway resource to be deployed depends on cert-manager"
+      - kubectl apply -f manifests/cilium/l2-lb-cfg.yaml
+
+  install-local-path-provisioner-csi:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mInstalling and configuring local-path-provisioner CSI\e[0m"
+      - echo "Note that there will be some delay after configmap is applied and before the provisioner picks it up and configuration takes effect"
+      - kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v{{ .LOCAL_PATH_PROVISIONER_VERSION }}/deploy/local-path-storage.yaml
+      - sleep 5
+      - kubectl apply -f manifests/local-path-provisioner/provisioner-cm.yaml
+
+  install-flux-operator:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mInstalling Flux Operator\e[0m"
+      - helm install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator --namespace flux-system --create-namespace

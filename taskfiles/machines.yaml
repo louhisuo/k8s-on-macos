@@ -2,62 +2,351 @@
 version: "3"
 
 tasks:
-  create-machines-for-minimal-topology:
+  bootstrap:
+    desc: Creates and bootstraps machines for a specified Kubernetes cluster topology (minimal | non-ha | ha)
+    silent: true
     cmds:
+      - '{{ if eq .CLI_ARGS "minimal" }}
+               task machines:create-minimal &&
+               task machines:start-minimal
+         {{ else if eq .CLI_ARGS "non-ha" }}
+               task machines:create-non-ha &&
+               task machines:start-non-ha
+         {{ else if eq .CLI_ARGS "ha" }}
+               task machines:create-ha &&
+               task machines:start-ha
+         {{ else }}
+               echo "Kubernetes cluster topology is not supported"                
+         {{ end }}'
+
+  start:
+    desc: Starts machines which were created for a specified Kubernetes cluster topology
+    silent: true
+    cmds:
+      - '{{ if eq .CLI_ARGS "minimal" }}
+               task machines:start-minimal
+         {{ else if eq .CLI_ARGS "non-ha" }}
+               task machines:start-non-ha
+         {{ else if eq .CLI_ARGS "ha" }}
+               task machines:start-ha
+         {{ else }}
+               echo "Kubernetes cluster topology is not supported"                
+         {{ end }}'
+
+  stop:
+    desc: Stops running machines which were started for a specified Kubernetes cluster topology
+    silent: true
+    cmds:
+      - '{{ if eq .CLI_ARGS "minimal" }}
+               task machines:stop-minimal
+         {{ else if eq .CLI_ARGS "non-ha" }}
+               task machines:stop-non-ha
+         {{ else if eq .CLI_ARGS "ha" }}
+               task machines:stop-ha
+         {{ else }}
+               echo "Kubernetes cluster topology is not supported"                
+         {{ end }}'
+
+  delete:
+    desc: Deletes running or stopped machines which were created for a specified Kubernetes cluster topology
+    silent: true
+    cmds:
+      - '{{ if eq .CLI_ARGS "minimal" }}
+               task machines:delete-minimal
+         {{ else if eq .CLI_ARGS "non-ha" }}
+               task machines:delete-non-ha
+         {{ else if eq .CLI_ARGS "ha" }}
+               task machines:delete-ha
+         {{ else }}
+               echo "Kubernetes cluster topology is not supported"                
+         {{ end }}'
+
+  list:
+    desc: Lists all machines which are currectly created or started (a wrapper to 'limactl list')
+    silent: true
+    cmd: limactl list
+
+
+  create-minimal:
+    silent: true
+    cmds:
+      - task: generate-machine-config
+      - task: create-cp-1
+      - task: create-worker-1
+
+  create-non-ha:
+    silent: true
+    cmds:
+      - task: generate-machine-config
+      - task: create-cp-1
+      - task: create-worker-1
+      - task: create-worker-2
+      - task: create-worker-3
+
+  create-ha:
+    silent: true
+    cmds:
+      - task: generate-machine-config
+      - task: create-cp-1
+      - task: create-cp-2
+      - task: create-cp-3
+      - task: create-worker-1
+      - task: create-worker-2
+      - task: create-worker-3
+
+
+  start-minimal:
+    silent: true
+    cmds:
+      - task: start-cp-1
+      - task: start-worker-1
+
+  start-non-ha:
+    silent: true
+    cmds:
+      - task: start-cp-1
+      - task: start-worker-1
+      - task: start-worker-2
+      - task: start-worker-3
+
+  start-ha:
+    silent: true
+    cmds:
+      - task: start-cp-1
+      - task: start-cp-2
+      - task: start-cp-3
+      - task: start-worker-1
+      - task: start-worker-2
+      - task: start-worker-3
+
+
+  stop-minimal:
+    silent: true
+    cmds:
+      - task: stop-worker-1
+      - task: stop-cp-1
+
+  stop-non-ha:
+    silent: true
+    cmds:
+      - task: stop-worker-3
+      - task: stop-worker-2
+      - task: stop-worker-1
+      - task: stop-cp-1
+
+  stop-ha:
+    silent: true
+    cmds:
+      - task: stop-worker-3
+      - task: stop-worker-2
+      - task: stop-worker-1
+      - task: stop-cp-3
+      - task: stop-cp-2
+      - task: stop-cp-1
+
+
+  delete-minimal:
+    silent: true
+    cmds:
+      - task: delete-worker-1
+      - task: delete-cp-1
+
+  delete-non-ha:
+    silent: true
+    cmds:
+      - task: delete-worker-3
+      - task: delete-worker-2
+      - task: delete-worker-1
+      - task: delete-cp-1
+
+  delete-ha:
+    silent: true
+    cmds:
+      - task: delete-worker-3
+      - task: delete-worker-2
+      - task: delete-worker-1
+      - task: delete-cp-3
+      - task: delete-cp-2
+      - task: delete-cp-1
+
+
+  generate-machine-config:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mGenerating machine configuration with based on Kubernetes version defined in 'k8s-on-macos.env\e[0m"
+      - |
+        sed "s#<KUBERNETES_REPO>#$(grep -e 'KUBERNETES_REPO' k8s-on-macos.env | awk '{gsub(/[^.0-9]/, ""); printf "v%s",$1}')#g" machines/ubuntu-lts-machine.templ.yaml | tee machines/ubuntu-lts-machine.yaml >/dev/null
+      - |
+        sed -i '' "s#<KUBERNETES_VERSION>#$(grep -e 'KUBERNETES_VERSION' k8s-on-macos.env | awk '{gsub(/[^.0-9]/, ""); printf "%s",$1}')#g" machines/ubuntu-lts-machine.yaml
+
+  create-cp-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mCreating 'cp-1' machine\e[0m"
       - limactl create machines/ubuntu-lts-machine.yaml --name cp-1 --set='.networks[].macAddress="52:55:55:12:34:01"' --tty=false
-      - limactl create machines/ubuntu-lts-machine.yaml --name worker-1 --set='.networks[].macAddress="52:55:55:12:34:04"' --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
 
-  create-machines-for-non-ha-topology:
+  create-cp-2:
+    silent: true
+    internal: true
     cmds:
-      - limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-lts-machine.yaml --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
-      - limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
-
-  create-machines-for-ha-topology:
-    cmds:
+      - echo -e "\e[0;32mCreating 'cp-2' machine\e[0m"
       - limactl create machines/ubuntu-lts-machine.yaml --name cp-2 --set='.networks[].macAddress="52:55:55:12:34:02"' --tty=false
+
+  create-cp-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mCreating 'cp-3' machine\e[0m"
       - limactl create machines/ubuntu-lts-machine.yaml --name cp-3 --set='.networks[].macAddress="52:55:55:12:34:03"' --tty=false
 
-  start-machines-for-non-ha-topology:
+  create-worker-1:
+    silent: true
+    internal: true
     cmds:
-      - limactl start worker-2
-      - limactl start worker-3
+      - echo -e "\e[0;32mCreating 'worker-1' machine\e[0m"
+      - limactl create machines/ubuntu-lts-machine.yaml --name worker-1 --set='.networks[].macAddress="52:55:55:12:34:04"' --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
+      
+  create-worker-2:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mCreating 'worker-2' machine\e[0m"
+      - limactl create --set='.networks[].macAddress="52:55:55:12:34:05"' --name worker-2 machines/ubuntu-lts-machine.yaml --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
+      
+  create-worker-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mCreating 'worker-3' machine\e[0m"
+      - limactl create --set='.networks[].macAddress="52:55:55:12:34:06"' --name worker-3 machines/ubuntu-lts-machine.yaml --cpus {{ .WN_CPUS }} --memory {{ .WN_RAM }} --disk {{ .WN_DISK }} --tty=false
 
-  start-machines-for-minimal-topology:
+
+  start-cp-1:
+    silent: true
+    internal: true
     cmds:
+      - echo -e "\e[0;32mStarting 'cp-1' machine\e[0m"
       - limactl start cp-1
-      - limactl start worker-1
 
-  start-machines-for-ha-topology:
+  start-cp-2:
+    silent: true
+    internal: true
     cmds:
+      - echo -e "\e[0;32mStarting 'cp-2' machine\e[0m"
       - limactl start cp-2
+
+  start-cp-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStarting 'cp-3' machine\e[0m"
       - limactl start cp-3
 
-  stop-machines-in-minimal-topology:
+  start-worker-1:
+    silent: true
+    internal: true
     cmds:
-      - limactl stop worker-1
+      - echo -e "\e[0;32mStarting 'worker-1' machine\e[0m"
+      - limactl start worker-1
+
+  start-worker-2:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStarting 'worker-2' machine\e[0m"
+      - limactl start worker-2
+      
+  start-worker-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStarting 'worker-3' machine\e[0m"
+      - limactl start worker-3
+
+
+  stop-cp-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStopping 'cp-1' machine\e[0m"
       - limactl stop cp-1
 
-  stop-machines-in-non-ha-topology:
+  stop-cp-2:
+    silent: true
+    internal: true
     cmds:
-      - limactl stop worker-3
-      - limactl stop worker-2
-
-  stop-machines-in-ha-topology:
-    cmds:
-      - limactl stop cp-3
+      - echo -e "\e[0;32mStopping 'cp-2' machine\e[0m"
       - limactl stop cp-2
 
-  force-delete-machines-in-minimal-topology:
+  stop-cp-3:
+    silent: true
+    internal: true
     cmds:
-      - limactl delete --force worker-1
+      - echo -e "\e[0;32mStopping 'cp-3' machine\e[0m"
+      - limactl stop cp-3
+
+  stop-worker-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStopping 'worker-1' machine\e[0m"
+      - limactl stop worker-1
+
+  stop-worker-2:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStopping 'worker-2' machine\e[0m"
+      - limactl stop worker-2
+
+  stop-worker-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mStopping 'worker-3' machine\e[0m"
+      - limactl stop worker-3
+
+
+  delete-cp-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mDeleting 'cp-1' machine\e[0m"
       - limactl delete --force cp-1
 
-  force-delete-machines-in-non-ha-topology:
+  delete-cp-2:
+    silent: true
+    internal: true
     cmds:
-      - limactl delete --force worker-3
+      - echo -e "\e[0;32mDeleting 'cp-2' machine\e[0m"
+      - limactl delete --force cp-2
+
+  delete-cp-3:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mDeleting 'cp-3' machine\e[0m"
+      - limactl delete --force cp-3
+
+  delete-worker-1:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mDeleting 'worker-1' machine\e[0m"
+      - limactl delete --force worker-1
+
+  delete-worker-2:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mDeleting 'worker-2' machine\e[0m"
       - limactl delete --force worker-2
 
-  force-delete-machines-in-ha-topology:
+  delete-worker-3:
+    silent: true
+    internal: true
     cmds:
-      - limactl delete --force cp-3
-      - limactl delete --force cp-2
+      - echo -e "\e[0;32mDeleting 'worker-3' machine\e[0m"
+      - limactl delete --force worker-3

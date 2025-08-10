@@ -1,0 +1,43 @@
+---
+version: "3"
+
+tasks:
+  bootstrap:
+    desc: Deploys and configures addons in Kubernetes cluster (optional)
+    silent: true
+    cmds:
+      - task: deploy-cert-manager
+      - task: deploy-metrics-server
+      - task: apply-cluster-issuer-manifest
+      - task: apply-gateway-manifest
+
+  deploy-cert-manager:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mInstalling cert-manager Kubernetes add-on\e[0m"
+      - helm repo add jetstack https://charts.jetstack.io --force-update
+      - helm install cert-manager jetstack/cert-manager --version {{ .CERT_MANAGER_CHART_VERSION }} --namespace cert-manager --create-namespace --values manifests/cert-manager/values.yaml
+
+  deploy-metrics-server:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mInstalling metrics-server Kubernetes add-on\e[0m"
+      - helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ --force-update
+      - helm install metrics-server metrics-server/metrics-server --version {{ .METRICS_SERVER_CHART_VERSION }} --namespace kube-system --values manifests/metrics-server/values.yaml
+
+  apply-cluster-issuer-manifest:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mApplying cert-manager 'ClusterIssuer' resource manifest\e[0m"
+      - kubectl apply -f manifests/cert-manager/ca-clusterissuer.yaml
+
+  apply-gateway-manifest:
+    silent: true
+    internal: true
+    cmds:
+      - echo -e "\e[0;32mApplying Gateway API 'Gateway' resource manifest\e[0m"
+      - echo "Note that it is assumed that your DNS in LAN is properly configured with DNS entries '<something>.sandbox.k8s.internal' according to your 'Gateway' configuration to route traffic into cluster."
+      - kubectl apply -f manifests/cilium/gateway-with-tls.yaml

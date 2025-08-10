@@ -1,0 +1,14 @@
+---
+version: "3"
+
+tasks:
+  install-tools:
+    vars:
+      BREWFILE: "{{.ROOT_DIR}}/Brewfile"
+
+    desc: Installs tools required for 'k8s-on-macos' with Homebrew
+    cmd: brew bundle --file {{.BREWFILE}}
+    preconditions:
+      - { msg: "Missing Homebrew", sh: "command -v brew" }
+      - { msg: "Missing Brewfile", sh: "test -f {{.BREWFILE}}" }
+ 

@@ -2,7 +2,7 @@ kind: Ingress
 apiVersion: networking.k8s.io/v1
 metadata:
   name: headlamp
-  namespace: kube-system
+  namespace: headlamp
   annotations:
     cert-manager.io/cluster-issuer: cluster-ca
     ingress.cilium.io/force-https: enabled

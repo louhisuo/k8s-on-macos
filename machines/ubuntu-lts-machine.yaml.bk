@@ -111,14 +111,17 @@ provision:
     #!/bin/bash
     set -eux -o pipefail
 
+    K8S_REPO=v1.33
+    K8S_VERSION=1.33.3
+
     apt-get update
     apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq
 
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/${K8S_REPO}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/'${K8S_REPO}'/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
     apt-get update
-    apt-get install -y kubeadm=1.33.3-* kubectl=1.33.3-* kubelet=1.33.3-*
+    apt-get install -y kubeadm=${K8S_VERSION}-* kubectl=${K8S_VERSION}-* kubelet=${K8S_VERSION}-*
     apt-mark hold kubeadm kubectl kubelet
     systemctl enable --now kubelet
 

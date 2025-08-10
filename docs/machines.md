@@ -1,6 +1,13 @@
 ## Create Machines for Different Kubernetes Cluster Topologies
 Use this guide if you want to create machines manually.
 
+### Set Kubernetes release to be provisioned into machines
+This step generates machine configuration yaml file with Kubernetes version specified in k8s-on-macos.env
+```
+sed "s#<KUBERNETES_REPO>#$(grep -e 'KUBERNETES_REPO' k8s-on-macos.env | awk '{gsub(/[^.0-9]/, ""); printf "v%s",$1}')#g" machines/ubuntu-lts-machine.templ.yaml | tee machines/ubuntu-lts-machine.yaml >/dev/null
+sed -i '' "s#<KUBERNETES_VERSION>#$(grep -e 'KUBERNETES_VERSION' k8s-on-macos.env | awk '{gsub(/[^.0-9]/, ""); printf "%s",$1}')#g" machines/ubuntu-lts-machine.yaml
+```
+
 ### Single Control Plane Node and Single Worker Node Topology
 Create machines (Virtual Machines (VM) for nodes) for single Control Plane (CP) and Single Worker node cluster topology.
 ```
