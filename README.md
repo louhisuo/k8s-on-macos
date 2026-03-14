@@ -173,10 +173,6 @@ just healthcheck
 ## Configure Kubernetes Cluster with GitOps (optional)
 FluxCD is used to configure Kubernetes cluster based on `sandbox` cluster GitOps overlay.
 
-Set secret for Git repository used by flux instance (optional)
-```
-kubectl apply -f infra/sandbox/flux/secret.yaml
-```
 Deploy flux instance which configures cluster
 ```
 kubectl apply -f infra/sandbox/flux/fluxinstance.yaml
