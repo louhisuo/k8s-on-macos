@@ -1,13 +1,20 @@
-tap 'go-task/tap'
-brew 'go-task'
-
 brew "cilium-cli"
-brew 'curl'
+brew "cmctl"
+brew "curl"
+tap "controlplaneio-fluxcd/tap"
+brew "controlplaneio-fluxcd/tap/flux-operator"
+tap "fluxcd/tap"
+brew "fluxcd/tap/flux"
 brew "git"
+tap "go-task/tap"
+brew "go-task/tap/go-task"
 brew "helm"
-brew "helmfile"
+brew "hubble"
+brew "istioctl"
 brew "jq"
-brew "kubernetes-cli@1.33"
+brew "just"
+brew "krew"
+brew "kubernetes-cli@1.35"
 brew "kustomize"
 brew "lima"
 brew "qemu"

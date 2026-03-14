@@ -1,0 +1,76 @@
+---
+apiVersion: source.extensions.fluxcd.io/v1beta1
+kind: ArtifactGenerator
+metadata:
+  name: &app sandbox
+  namespace: flux-system
+spec:
+  sources:
+    - alias: monorepo
+      kind: GitRepository
+      name: *app
+  artifacts:
+    - name: crds
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/configs/crds/gateway-api/**"
+          to: "@artifact/crds/gateway-api"
+        - from: "@monorepo/infra/configs/crds/cert-manager/**"
+          to: "@artifact/crds/cert-manager"
+    - name: flux-operator
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/controllers/flux-operator/**"
+          to: "@artifact/flux-operator"
+        - from: "@monorepo/infra/configs/flux-operator/**"
+          to: "@artifact/flux-operator"
+        - from: "@monorepo/infra/sandbox/flux-operator/**"
+          to: "@artifact/flux-operator"
+    - name: flux
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/sandbox/flux/**"
+          to: "@artifact/flux"
+    - name: cilium
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/controllers/cilium/**"
+          to: "@artifact/cilium"
+        - from: "@monorepo/infra/configs/cilium/**"
+          to: "@artifact/cilium"
+        - from: "@monorepo/infra/sandbox/cilium/**"
+          to: "@artifact/cilium"
+    - name: cert-manager
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/controllers/cert-manager/**"
+          to: "@artifact/cert-manager"
+        - from: "@monorepo/infra/configs/cert-manager/**"
+          to: "@artifact/cert-manager"
+        - from: "@monorepo/infra/sandbox/cert-manager/**"
+          to: "@artifact/cert-manager"
+    - name: metrics-server
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/controllers/metrics-server/**"
+          to: "@artifact/metrics-server"
+        - from: "@monorepo/infra/sandbox/metrics-server/**"
+          to: "@artifact/metrics-server"
+    - name: local-path-provisioner
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/infra/controllers/local-path-provisioner/**"
+          to: "@artifact/local-path-provisioner"
+        - from: "@monorepo/infra/configs/local-path-provisioner/**"
+          to: "@artifact/local-path-provisioner"
+        - from: "@monorepo/infra/sandbox/local-path-provisioner/**"
+          to: "@artifact/local-path-provisioner"
+    - name: headlamp
+      originRevision: "@monorepo"
+      copy:
+        - from: "@monorepo/apps/controllers/headlamp/**"
+          to: "@artifact/headlamp"
+        - from: "@monorepo/apps/configs/headlamp/**"
+          to: "@artifact/headlamp"
+        - from: "@monorepo/infra/sandbox/headlamp/**"
+          to: "@artifact/headlamp"

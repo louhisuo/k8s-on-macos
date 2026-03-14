@@ -1,0 +1,4 @@
+# For how to use parameters, see https://github.com/lima-vm/lima/pull/2570
+param:
+  K8S_REPO: 1.35
+  K8S_VERSION: 1.35.2

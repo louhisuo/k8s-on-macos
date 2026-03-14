@@ -1,0 +1,13 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+metadata:
+  name: kubeadm-init-initconfig
+
+localAPIEndpoint:
+  advertiseAddress: 192.168.105.101
+nodeRegistration:
+  name: "cp-1"
+  kubeletExtraArgs:
+  - name: node-ip
+    value: 192.168.105.101

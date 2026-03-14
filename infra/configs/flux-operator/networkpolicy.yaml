@@ -1,0 +1,19 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress
+  namespace: flux-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: flux-operator
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}
+    - from:
+        - podSelector: {}
+    - ports:
+        - protocol: TCP
+          port: 9080

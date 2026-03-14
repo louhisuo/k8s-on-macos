@@ -1,0 +1,16 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: cert-manager-crds
+  namespace: cert-manager
+spec:
+  url: https://github.com/cert-manager/cert-manager
+  ref:
+    semver: v1.20.x
+  ignore: |-
+    # exclude all
+    /*
+    # except helm chart directory
+    !/deploy/crds/
+  interval: 15m

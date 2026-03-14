@@ -1,0 +1,16 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: gateway-api-crds
+  namespace: kube-system
+spec:
+  url: https://github.com/kubernetes-sigs/gateway-api
+  ref:
+    semver: v1.4.x
+  ignore: |-
+    # exclude all
+    /*
+    # except helm chart directory
+    !/config/crd/
+  interval: 15m

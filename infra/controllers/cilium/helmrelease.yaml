@@ -1,0 +1,31 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app cilium
+  namespace: &ns kube-system
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: *app
+    namespace: *ns
+  install:
+    crds: Skip
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 5m
+  upgrade:
+    crds: Skip
+    strategy: 
+      name: RemediateOnFailure
+    remediation:
+      retries: 3
+      strategy: rollback
+  rollback:
+    cleanupOnFail: true
+    recreate: true
+  valuesFrom:
+    - kind: ConfigMap
+      name: cilium-values
+  interval: 15m
+  maxHistory: 3

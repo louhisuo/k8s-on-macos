@@ -1,0 +1,30 @@
+---
+apiVersion: fluxcd.controlplane.io/v1
+kind: FluxInstance
+metadata:
+  name: flux
+  namespace: flux-system
+  annotations:
+    fluxcd.controlplane.io/reconcile: enabled
+    fluxcd.controlplane.io/reconcileEvery: 5m
+    fluxcd.controlplane.io/reconcileArtifactEvery: 5m
+    fluxcd.controlplane.io/reconcileTimeout: 5m
+spec:
+  distribution:
+    version: "2.8.x"
+    registry: "ghcr.io/fluxcd"
+    artifact: "oci://ghcr.io/controlplaneio-fluxcd/flux-operator-manifests"
+  cluster:
+    type: kubernetes
+    size: small
+  components:
+    - helm-controller
+    - kustomize-controller
+    - source-controller
+    - source-watcher
+  sync:
+    kind: GitRepository
+    name: sandbox
+    url: https://github.com/louhisuo/k8s-on-macos.git
+    ref: refs/heads/main
+    path: "clusters/sandbox"

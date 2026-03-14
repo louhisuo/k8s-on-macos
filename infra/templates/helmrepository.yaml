@@ -1,0 +1,9 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: application
+  namespace: namespace
+spec:
+  url: https://helmrepourl.goes.here
+  interval: 24h

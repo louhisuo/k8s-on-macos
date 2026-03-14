@@ -1,0 +1,40 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hubble-ui
+  namespace: kube-system
+spec:
+  hostnames:
+  - hubble-ui.sandbox.internal
+  parentRefs:
+  - name: cilium-gtw
+    namespace: kube-system
+    sectionName: hubble-ui
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hubble-ui-tls
+  namespace: kube-system
+spec:
+  hostnames:
+  - hubble-ui.sandbox.internal
+  parentRefs:
+  - name: cilium-gtw
+    namespace: kube-system
+    sectionName: hubble-ui-tls
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: hubble-ui
+      port: 80

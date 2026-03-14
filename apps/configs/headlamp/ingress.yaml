@@ -1,0 +1,26 @@
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: headlamp
+  namespace: headlamp
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-ca
+    ingress.cilium.io/force-https: enabled
+spec:
+  ingressClassName: cilium
+  tls:
+  - hosts:
+    - headlamp.ingress.sandbox.internal
+    secretName: headlamp-ingress-tls-cert
+  rules:
+  - host: headlamp.ingress.sandbox.internal
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: headlamp
+            port:
+              number: 80

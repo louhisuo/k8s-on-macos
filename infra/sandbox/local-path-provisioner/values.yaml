@@ -1,0 +1,8 @@
+storageClass:
+  name: local-path
+  provisionerName: rancher.io/local-path
+  create: true
+  defaultClass: true
+  defaultVolumeType: hostPath
+  reclaimPolicy: Delete
+  volumeBindingMode: WaitForFirstConsumer

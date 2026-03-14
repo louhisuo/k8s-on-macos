@@ -1,0 +1,17 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app crds-gateway-api
+  namespace: &ns flux-system
+spec:
+  path: ./config/crd
+  sourceRef:
+    kind: GitRepository
+    name: gateway-api-crds
+    namespace: kube-system
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true

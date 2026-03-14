@@ -1,0 +1,67 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cilium-gtw
+  namespace: kube-system
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-ca
+spec:
+  gatewayClassName: cilium
+  addresses:
+  - value: 192.168.105.253
+  listeners:
+  - name: flux-ui
+    protocol: HTTP
+    port: 80
+    hostname: flux-ui.sandbox.internal
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: flux-ui-tls
+    protocol: HTTPS
+    port: 443
+    hostname: flux-ui.sandbox.internal
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: flux-ui-gtw-tls-cert
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: headlamp
+    protocol: HTTP
+    port: 80
+    hostname: headlamp.sandbox.internal
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: headlamp-tls
+    protocol: HTTPS
+    port: 443
+    hostname: headlamp.sandbox.internal
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: headlamp-gtw-tls-cert
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: hubble-ui
+    protocol: HTTP
+    port: 80
+    hostname: hubble-ui.sandbox.internal
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: hubble-ui-tls
+    protocol: HTTPS
+    port: 443
+    hostname: hubble-ui.sandbox.internal
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: hubble-ui-gtw-tls-cert
+    allowedRoutes:
+      namespaces:
+        from: All

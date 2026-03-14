@@ -1,0 +1,129 @@
+#
+# Kubernetes Control Plave node machine template
+# See <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/>
+# To troubleshoot machine provisioning errors, try following inside guest machine
+# sudo cat /var/log/cloud-init-output.log
+#
+minimumLimaVersion: 2.0.0
+
+base:
+- ubuntu-machine.spec.tmpl.yaml
+- k8s-release.yaml
+
+# Provisioning scripts
+provision:
+# Load kernel modules for CRI (contrainerd) and CNI (Cilium)
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    cat <<EOF | tee -a /etc/modules-load.d/99-kubernetes.conf
+    overlay
+    br_netfilter
+    EOF
+
+    modprobe overlay
+    modprobe br_netfilter
+
+# Load IP Virtual Server (IPVS) related kernel modules, required by Kube-VIP add-on for Control Plane Load-Balancing
+# <https://github.com/kubernetes/kubernetes/blob/master/pkg/proxy/ipvs/README.md#run-kube-proxy-in-ipvs-mode>
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    cat <<EOF | tee -a /etc/modules-load.d/98-kubevip.conf
+    ip_vs
+    ip_vs_rr
+    ip_vs_wrr
+    ip_vs_sh
+    nf_conntrack
+    EOF
+    
+    modprobe ip_vs
+    modprobe ip_vs_rr
+    modprobe ip_vs_wrr
+    modprobe ip_vs_sh
+    modprobe nf_conntrack
+
+# Enable IPv4 and IPv6 packet forwarding
+# For IPv4, see <https://kubernetes.io/docs/setup/production-environment/container-runtimes/#prerequisite-ipv4-forwarding-optional>
+# For IPv6, see <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/dual-stack-support/#prerequisite-ipv6-forwarding>
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    cat <<EOF | tee -a /etc/sysctl.d/99-kubernetes-cri.conf
+    net.ipv4.ip_forward          = 1
+    net.ipv6.conf.all.forwarding = 1
+    EOF
+
+    sysctl --system
+
+# Apply containerd configuration and enable containerd service
+# See for Kubernetes container runtime prerequisite <https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd>
+#
+# This provisioning script assumes containerd v2.x and its config version 3
+# See containerd docs for details <https://github.com/containerd/containerd/blob/main/docs/cri/config.md>
+#
+# Note that things will change in future for Lima VM, see <https://github.com/lima-vm/lima/issues/4186>
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    mkdir -p /etc/containerd
+    containerd config default > /etc/containerd/config.toml
+    sed -i 's#SystemdCgroup = false#SystemdCgroup = true#' /etc/containerd/config.toml
+    systemctl restart containerd
+
+
+# Install kubeadm, kubectl and kubelet
+# See <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl>
+#
+# ipvsadm and jq are not required by kubernetes, review and move elsewhere if needed
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    apt-get update
+    apt-get install -y apt-transport-https ca-certificates curl gpg ipvsadm jq
+
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v${PARAM_K8S_REPO}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${PARAM_K8S_REPO}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+
+    apt-get update
+    apt-get install -y kubelet=${PARAM_K8S_VERSION}-* kubeadm=${PARAM_K8S_VERSION}-*  kubectl=${PARAM_K8S_VERSION}-*
+    apt-mark hold kubelet kubeadm kubectl
+    systemctl enable --now kubelet
+
+
+# Readiness probes for provisioning scripts
+#
+# To troubleshoot provisioning issues, see
+# - '~/.lima/<machine>/serial.log' on host,
+# - '~/.lima/<machine>/ha-stderr.log' on host and/or
+# -'/var/log/cloud-init-output.log' inside of guest machine
+probes:
+- description: "Activating 'containerd' systemd service"
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    if ! timeout 20s bash -c "until command systemctl is-active --quiet containerd; do sleep 3; done"; then
+        echo >&2 "Waiting for containerd service to become active"
+        exit 1
+    fi
+
+- description: "Installing kubeadm, kubelet and kubectl"
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    if ! timeout 20s bash -c "until command -v kubeadm >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "Waiting for kubelet, kubeadm and kubectl installation to be completed"
+        exit 1
+    fi

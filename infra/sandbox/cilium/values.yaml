@@ -1,0 +1,60 @@
+# Point Cilium to API server VIP address
+k8sServiceHost: "192.168.105.100"
+k8sServicePort: "6443"
+
+# Configure client side rate limit for the agent and operator
+k8sClientRateLimit:
+  qps: 50
+  burst: 100
+
+# Enable kube-proxy replacement in Cilium BPF datapath
+kubeProxyReplacement: "true"
+
+# Enable Layer 7 network policy
+l7proxy: "true"
+
+# Enable L2 announcements / L2 aware LB
+l2announcements:
+  enabled: true
+
+# Configure Pod CIDR to match with kubeadm config networking.podSubnet
+ipam:
+  operator:
+    clusterPoolIPv4PodCIDRList: ["10.244.0.0/16"]
+
+# Enable shared Cilium Ingress Controller as a default Kubernetes Ingress
+ingressController:
+  default: true
+  enabled: true
+  loadbalancerMode: shared
+  service:
+    annotations:
+      "lbipam.cilium.io/ips": "192.168.105.254"
+
+# Enable Gateway API
+gatewayAPI:
+  enabled: true
+
+# Cilium Agent configuration
+rollOutCiliumPods: true
+
+# Cilium Envoy configuration
+envoy:
+  enabled: true
+  rollOutPods: true
+
+# Hubble configuration
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+    rollOutPods: true
+  ui:
+    enabled: true
+    rollOutPods: true
+
+# Cilium operator configuration
+operator:
+  enabled: true
+  replicas: 2
+  rollOutPods: true

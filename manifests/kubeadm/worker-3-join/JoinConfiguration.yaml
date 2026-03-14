@@ -1,0 +1,15 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+metadata:
+  name: kubeadm-join-worker-joinconfig
+
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: 192.168.105.100:6443
+
+nodeRegistration:
+  name: "worker-3"
+  kubeletExtraArgs:
+  - name: node-ip
+    value: 192.168.105.106

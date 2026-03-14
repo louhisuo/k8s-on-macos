@@ -1,0 +1,19 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+metadata:
+  name: kubeadm-join-cp-joinconfig
+
+controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: 192.168.105.103
+
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: 192.168.105.100:6443
+
+nodeRegistration:
+  name: "cp-3"
+  kubeletExtraArgs:
+  - name: node-ip
+    value: 192.168.105.103

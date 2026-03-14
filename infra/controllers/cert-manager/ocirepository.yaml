@@ -1,0 +1,14 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  url: oci://quay.io/jetstack/charts/cert-manager
+  ref:
+    semver: v1.20.x
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  interval: 15m

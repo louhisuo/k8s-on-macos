@@ -14,34 +14,3 @@ kubeProxyReplacement: "true"
 ipam:
   operator:
     clusterPoolIPv4PodCIDRList: ["10.244.0.0/16"]
-
-# Cilium operator configuration
-operator:
-  enabled: true
-  replicas: 1
-  rollOutPods: true
-  
-# Cilium Envoy configuration
-envoy:
-  enabled: true
-  rollOutPods: true
-
-# Cilium Agent configuration
-rollOutCiliumPods: true
-
-# Enable L2 announcements / L2 aware LB
-l2announcements:
-  enabled: true
-
-# Enable shared Cilium Ingress Controller as a default Kubernetes Ingress
-ingressController:
-  enabled: true
-  default: true
-  loadbalancerMode: shared
-  service:
-    annotations:
-      "lbipam.cilium.io/ips": "192.168.105.254"
-
-# Enable Gateway API
-gatewayAPI:
-  enabled: true

@@ -1,0 +1,15 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: local-path
+resources:
+  - namespace.yaml
+  - gitrepository.yaml
+  - helmrelease.yaml
+  - configmap.yaml
+configMapGenerator:
+- name: local-path-storage-values
+  files:
+    - values.yaml=values.yaml
+configurations:
+  - kustomizeconfig.yaml

@@ -1,0 +1,18 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+metadata:
+  name: kubeadm-init-clusterconfig
+
+clusterName: "sandbox"
+controlPlaneEndpoint: 192.168.105.100:6443
+kubernetesVersion: "v1.35.2"
+
+apiServer:
+  certSANs:
+  - "127.0.0.1"
+  - "192.168.105.100"
+  - "192.168.105.101"
+  - "192.168.105.102"
+  - "192.168.105.103"
+  - "sandbox.internal"

@@ -1,0 +1,71 @@
+#
+# Common Ubuntu LTS machine template for all guest instances 
+#
+minimumLimaVersion: 2.0.0
+
+# Use the latest Ubuntu LTS release image, if needed invalidate the cache with `limactl prune` before deploying machine
+images:
+- location: https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-arm64.img
+  arch: aarch64
+
+# Machine instance VM type either "qemu" or "vz" (on macOS 13 and later)
+vmType: qemu
+vmOpts:
+  qemu:
+    cpuType:
+      aarch64: "host"
+
+# Defaults for Virtual Machine (VM) sizing (CPUs, RAM and Disk), can be overwritten via CLI
+cpus: 2
+memory: "2GiB"
+disk: "16GiB"
+
+# User to be used inside the machine instance
+user:
+  name: ubuntu
+  comment: "Ubuntu Administrator"
+  uid: 1000
+  home: "/home/ubuntu"
+  shell: "/bin/bash"
+
+# Enable system-wide (aka rootful) containerd for Kubernetes
+containerd:
+  system: true
+  user: false
+
+# Default networking configuration to able to set MAC address to machine instance via CLI
+# limactl create / start --set='.networks[].macAddress="52:55:55:12:34:56" is used to set unique mac address
+# For reference why we set MAC address, see https://github.com/lima-vm/socket_vmnet/tree/master#how-to-use-static-ip-addresses
+networks:
+- lima: shared
+  macAddress: "12:34:56:78:9A:BC"
+
+# This seems to have no effect, will investigate later
+hostResolver:
+  enabled: true
+  hosts:
+#    guest.name: 127.1.1.1
+    host.name: host.lima.internal
+    sandbox.k8s.internal: 192.168.105.100
+    sandbox: 192.168.105.100
+    cp-1: 192.168.105.101
+    cp-2: 192.168.105.102
+    cp-3: 192.168.105.103
+    worker-1: 192.168.105.104
+    worker-2: 192.168.105.105
+    worker-3: 192.168.105.106
+
+# Port forwarding rules. Expose Kubernetes nodePort range to host
+portForwards:
+- guestPortRange: [30000, 32767]
+  hostPortRange: [30000, 32767]
+  hostIP:  "0.0.0.0"
+
+# Expose a host directory to the guest. Needed when using 'local-path-provisioner' as CSI
+mountType: 9p
+mounts:
+- location: "/opt/lima/storage"
+  mountPoint: "/storage"
+  writable: true
+  9p:
+    securityModel: "mapped-xattr"

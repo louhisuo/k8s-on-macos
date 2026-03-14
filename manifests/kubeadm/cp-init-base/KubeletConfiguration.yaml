@@ -1,0 +1,11 @@
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+metadata:
+  name: kubeadm-init-kubeletconfig
+
+# 'kubectl get csr' / 'kubectl certificate approve' are used to approve kubernetes.io/kubelet-serving CSRs
+rotateCertificates: true
+serverTLSBootstrap: true
+serializeImagePulls: false
+featureGates:

@@ -1,0 +1,17 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kube-system
+resources:
+  - ocirepository.yaml
+  - helmrelease.yaml
+  - ciliuml2announcementpolicy.yaml
+  - ciliumloadbalancerippool.yaml
+  - gateway.yaml
+  - httproute.yaml
+configMapGenerator:
+  - name: cilium-values
+    files:
+      - values.yaml=values.yaml
+configurations:
+  - kustomizeconfig.yaml

@@ -1,0 +1,16 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: local-path-provisioner
+  namespace: local-path
+spec:
+  url: https://github.com/rancher/local-path-provisioner
+  ref:
+    semver: v0.0.x
+  ignore: |-
+    # exclude all
+    /*
+    # except helm chart directory
+    !/deploy/chart/
+  interval: 15m

@@ -1,0 +1,13 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: application
+  namespace: namespace
+spec:
+  url: oci://your/ocirepo/goes/here
+  ref:
+    tag: v1.0.0
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  interval: 24h

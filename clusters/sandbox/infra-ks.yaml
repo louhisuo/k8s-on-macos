@@ -1,0 +1,128 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app flux-operator
+  namespace: &ns flux-system
+spec:
+  path: ./flux-operator
+  sourceRef:
+    kind: ExternalArtifact
+    name: flux-operator
+    namespace: *ns
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app flux
+  namespace: &ns flux-system
+spec:
+  path: ./flux
+  sourceRef:
+    kind: ExternalArtifact
+    name: flux
+    namespace: *ns
+  dependsOn:
+    - name: flux-operator
+      namespace: *ns
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app cilium
+  namespace: &ns flux-system
+spec:
+  path: ./cilium
+  sourceRef:
+    kind: ExternalArtifact
+    name: cilium
+    namespace: *ns
+  dependsOn:
+    - name: crds-gateway-api
+      namespace: *ns
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: cilium-operator
+      namespace: kube-system
+    - apiVersion: apps/v1
+      kind: DaemonSet
+      name: cilium
+      namespace: kube-system
+    - apiVersion: apps/v1
+      kind: DaemonSet
+      name: cilium-envoy
+      namespace: kube-system
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app cert-manager
+  namespace: &ns flux-system
+spec:
+  path: ./cert-manager
+  sourceRef:
+    kind: ExternalArtifact
+    name: cert-manager
+    namespace: *ns
+  targetNamespace: cert-manager
+  dependsOn:
+    - name: crds-cert-manager
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app metrics-server
+  namespace: &ns flux-system
+spec:
+  path: ./metrics-server
+  sourceRef:
+    kind: ExternalArtifact
+    name: metrics-server
+    namespace: *ns
+  targetNamespace: kube-system
+  dependsOn:
+    - name: cert-manager
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &app local-path-provisioner
+  namespace: &ns flux-system
+spec:
+  path: ./local-path-provisioner
+  sourceRef:
+    kind: ExternalArtifact
+    name: local-path-provisioner
+    namespace: *ns
+  targetNamespace: local-path
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: true
+  wait: true

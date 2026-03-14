@@ -1,0 +1,34 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app headlamp
+  namespace: &ns headlamp
+spec:
+  chart:
+    spec:
+      chart: *app
+      version: 0.x
+      sourceRef:
+        kind: HelmRepository
+        name: *app
+        namespace: *ns
+  install:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 5m
+  upgrade:
+    crds: CreateReplace
+    strategy: 
+      name: RemediateOnFailure
+    remediation:
+      retries: 3
+      strategy: rollback
+  rollback:
+    cleanupOnFail: true
+    recreate: true
+  valuesFrom:
+    - kind: ConfigMap
+      name: headlamp-values
+  interval: 15m
+  maxHistory: 3

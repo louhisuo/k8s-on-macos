@@ -1,0 +1,37 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: local-path-config
+  namespace: local-path
+data:
+  config.json: |-
+        {
+                "sharedFileSystemPath": "/storage",
+                "nodePathMap": []
+        }
+  setup: |-
+        #!/bin/sh
+        set -eu
+        mkdir -m 0777 -p "$VOL_DIR"
+        chmod 0777 -R "$VOL_DIR"
+  teardown: |-
+        #!/bin/sh
+        set -eu
+        rm -rf "$VOL_DIR"
+  helperPod.yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: helper-pod
+      namespace: local-path
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: helper-pod
+        image: busybox
+        imagePullPolicy: IfNotPresent

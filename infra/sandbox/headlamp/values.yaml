@@ -1,0 +1,15 @@
+config:
+  watchPlugins: true
+# Temporary workaround to issue https://github.com/kubernetes-sigs/headlamp/issues/4883
+  sessionTTL: null
+
+pluginsManager:
+  enabled: true
+  configContent: |
+    plugins:
+      - name: cert-manager
+        source: https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cert-manager
+        version: 0.1.0
+    installOptions:
+      parallel: true
+      maxConcurrent: 2
